@@ -59,28 +59,28 @@ export const TEXT_MODELS = [
 /** 视频模型配置 */
 export const VIDEO_MODELS = [
   // OpenAI Sora 系列
-  { id: 1, name: 'Sora 2(模型不存在,文档里面的curl都跑不通)', model: 'sora-2', platform: 'openai', platformId: 1 },
-  { id: 2, name: 'Sora 2 Pro(能用，)', model: 'sora-2-pro', platform: 'openai', platformId: 1 },
-  { id: 3, name: 'Sora 2 VIP(能进入回调，最后所有渠道都失败)', model: 'sora-2-vip', platform: 'openai', platformId: 1 },
-  { id: 4, name: 'Sora 2 Official(能用，进度完成不给我URL)', model: 'sora-2-official', platform: 'openai', platformId: 1 },
-  // Google Veo 系列
-  { id: 5, name: 'Veo 3.1 Fast(响应体不同于其他的，它把URL放到了metadata里面了)', model: 'veo3.1-fast', platform: 'google', platformId: 16 },
-  { id: 6, name: 'Veo 3.1 Quality', model: 'veo3.1-quality', platform: 'google', platformId: 16 },
-  { id: 7, name: 'Veo 3.1 Quality Official', model: 'Veo3.1-quality-official', platform: 'google', platformId: 16 },
-  { id: 8, name: 'Veo 3.1 Fast Official', model: 'Veo3.1-fast-official', platform: 'google', platformId: 16 },
+  // { id: 1, name: 'Sora 2(模型不存在,文档里面的curl都跑不通)', model: 'sora-2', platform: 'openai', platformId: 1 },
+  // { id: 2, name: 'Sora 2 Pro(能用，)', model: 'sora-2-pro', platform: 'openai', platformId: 1 },
+  // { id: 3, name: 'Sora 2 VIP(能进入回调，最后所有渠道都失败)', model: 'sora-2-vip', platform: 'openai', platformId: 1 },
+  // { id: 4, name: 'Sora 2 Official(能用，进度完成不给我URL)', model: 'sora-2-official', platform: 'openai', platformId: 1 },
+  // // Google Veo 系列
+  // { id: 5, name: 'Veo 3.1 Fast(响应体不同于其他的，它把URL放到了metadata里面了)', model: 'veo3.1-fast', platform: 'google', platformId: 16 },
+  // { id: 6, name: 'Veo 3.1 Quality', model: 'veo3.1-quality', platform: 'google', platformId: 16 },
+  // { id: 7, name: 'Veo 3.1 Quality Official', model: 'Veo3.1-quality-official', platform: 'google', platformId: 16 },
+  // { id: 8, name: 'Veo 3.1 Fast Official', model: 'Veo3.1-fast-official', platform: 'google', platformId: 16 },
   // 字节豆包 Seedance 系列
   { id: 9, name: 'Doubao Seedance 1.0 Pro Fast(豆包的模型都能用)', model: 'doubao-seedance-1-0-pro-fast', platform: 'doubao', platformId: 2 },
   { id: 10, name: 'Doubao Seedance 1.0 Pro Quality', model: 'doubao-seedance-1-0-pro-quality', platform: 'doubao', platformId: 2 },
   { id: 11, name: 'Doubao Seedance 1.5 Pro', model: 'doubao-seedance-1-5-pro', platform: 'doubao', platformId: 2 },
   // MiniMax
-  { id: 12, name: 'MiniMax-Hailuo-02', model: 'MiniMax-Hailuo-02', platform: 'minimax', platformId: 12 },
-  // Wan 系列
-  { id: 13, name: 'Wan2.6(size不能用16:9,要用1920:1080)', model: 'wan2.6', platform: 'wan', platformId: 13 },
-  { id: 14, name: 'Wan2.6-Flash', model: 'wan2.6-flash', platform: 'wan', platformId: 13 },
-  // Kling
-  { id: 15, name: 'Kling-2-6', model: 'kling-2-6', platform: 'kling', platformId: 14 },
-  // Vidu
-  { id: 16, name: 'VidUQ3-Pr(模型不纯在)', model: 'viduq3-pro', platform: 'vidu', platformId: 15 },
+  // { id: 12, name: 'MiniMax-Hailuo-02', model: 'MiniMax-Hailuo-02', platform: 'minimax', platformId: 12 },
+  // // Wan 系列
+  // { id: 13, name: 'Wan2.6(size不能用16:9,要用1920:1080)', model: 'wan2.6', platform: 'wan', platformId: 13 },
+  // { id: 14, name: 'Wan2.6-Flash', model: 'wan2.6-flash', platform: 'wan', platformId: 13 },
+  // // Kling
+  // { id: 15, name: 'Kling-2-6', model: 'kling-2-6', platform: 'kling', platformId: 14 },
+  // // Vidu
+  // { id: 16, name: 'VidUQ3-Pr(模型不纯在)', model: 'viduq3-pro', platform: 'vidu', platformId: 15 },
 ];
 
 /** 宽高比配置 */
