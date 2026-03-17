@@ -57,6 +57,8 @@ const DEFAULT_VIEWPORT: CanvasViewport = {
 
 const POLL_INTERVAL = 3000
 
+const VIEWPORT_EPSILON = 0.0001
+
 interface CanvasStoreState {
   nodes: CanvasNode[]
   edges: CanvasEdge[]
@@ -559,6 +561,14 @@ function wait(ms: number) {
   })
 }
 
+function isSameViewport(a: CanvasViewport, b: CanvasViewport) {
+  return (
+    Math.abs(a.x - b.x) < VIEWPORT_EPSILON &&
+    Math.abs(a.y - b.y) < VIEWPORT_EPSILON &&
+    Math.abs(a.zoom - b.zoom) < VIEWPORT_EPSILON
+  )
+}
+
 export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
   nodes: [],
   edges: [],
@@ -717,6 +727,11 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
   },
 
   setViewport: (viewport) => {
+    const currentViewport = get().viewport
+    if (isSameViewport(currentViewport, viewport)) {
+      return
+    }
+
     set({ viewport })
   },
 
@@ -724,7 +739,10 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     const state = get()
     const nextViewport = viewport ?? state.viewport
     persistGraph(serializeGraph(state.nodes, state.edges, nextViewport))
-    set({ viewport: nextViewport })
+
+    if (!isSameViewport(state.viewport, nextViewport)) {
+      set({ viewport: nextViewport })
+    }
   },
 
   hydrateGraph: () => {

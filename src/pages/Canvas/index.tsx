@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import {
     Background,
     BackgroundVariant,
@@ -20,6 +20,11 @@ import { canvasNodeTypes } from './CustomNodes'
 import CanvasLeftToolbar from '@/components/CanvasLeftToolbar'
 import { useCanvasStore } from '@/store/canvas'
 import { CANVAS_NODE_TYPES, canConnectNodes, type CanvasEdge, type CanvasNode } from '@/types/canvas'
+
+function isSameViewport(a: { x: number; y: number; zoom: number }, b: { x: number; y: number; zoom: number }) {
+    const EPSILON = 0.0001
+    return Math.abs(a.x - b.x) < EPSILON && Math.abs(a.y - b.y) < EPSILON && Math.abs(a.zoom - b.zoom) < EPSILON
+}
 
 // 外部组件 - 提供 ReactFlowProvider 和工具栏
 export default function CanvasPage() {
@@ -77,6 +82,7 @@ export default function CanvasPage() {
 
 function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; paneClickDistance: number }) {
     const reactFlow = useReactFlow<CanvasNode, CanvasEdge>()
+    const isProgrammaticViewportSyncRef = useRef(false)
     const nodes = useCanvasStore((state) => state.nodes)
     const edges = useCanvasStore((state) => state.edges)
     const contextMenu = useCanvasStore((state) => state.contextMenu)
@@ -101,7 +107,17 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
     }, [hydrateGraph])
 
     useEffect(() => {
+        const currentViewport = reactFlow.getViewport()
+        if (isSameViewport(currentViewport, viewport)) {
+            return
+        }
+
+        isProgrammaticViewportSyncRef.current = true
         reactFlow.setViewport(viewport, { duration: 0 })
+
+        window.setTimeout(() => {
+            isProgrammaticViewportSyncRef.current = false
+        }, 0)
     }, [reactFlow, viewport])
 
     const handleConnect = useCallback(
@@ -240,7 +256,13 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 onSelectionChange={({ nodes: selectedNodes, edges: selectedEdges }) => {
                     setSelection(selectedNodes[0]?.id ?? null, selectedEdges[0]?.id ?? null)
                 }}
-                onMoveEnd={(_, nextViewport) => setViewport(nextViewport)}
+                onMoveEnd={(_, nextViewport) => {
+                    if (isProgrammaticViewportSyncRef.current) {
+                        return
+                    }
+
+                    setViewport(nextViewport)
+                }}
                 isValidConnection={isValidConnection}
                 style={{
                     background:
