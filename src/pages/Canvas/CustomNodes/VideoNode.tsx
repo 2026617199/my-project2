@@ -1,17 +1,17 @@
 import { memo, useCallback, useMemo } from 'react'
 import { Handle, NodeToolbar, Position, type NodeProps } from '@xyflow/react'
-import { Input, InputNumber, Switch, Typography } from 'antd'
+import { Input, InputNumber, Switch, Typography, message } from 'antd'
+import { PlusOutlined } from '@ant-design/icons'
 
 import { NodeShell, PreviewSection } from './shared'
 
 import CloudButton from '@/components/CloudButton'
 import CloudSelect from '@/components/CloudSelect'
 import {
-    IMAGE_RESOLUTIONS,
     VIDEO_ASPECT_RATIOS,
     VIDEO_DURATION_CONFIG,
     VIDEO_MODELS,
-    VIDEO_STYLE_OPTIONS,
+    VIDEO_RESOLUTIONS,
 } from '@/constants/ai-models'
 import { useCanvasStore } from '@/store/canvas'
 import type { VideoCanvasNode, VideoNodeData } from '@/types/canvas'
@@ -38,51 +38,81 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
             <NodeToolbar isVisible={selected} position={Position.Bottom} offset={20 * zoom}>
                 <div
                     className="rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.14)] backdrop-blur-lg"
-                    style={{ width: 380, transform: `scale(${zoom})`, transformOrigin: 'top center' }}
+                    style={{ width: 400, transform: `scale(${zoom})`, transformOrigin: 'top center' }}
                 >
                     <Typography.Text strong className="mb-3 block text-slate-900">
                         视频节点工具栏
                     </Typography.Text>
                     <div className="space-y-3">
+                        {/* 模型选择 */}
+                        <div className="flex items-center gap-2">
+                            <Typography.Text className="w-16 shrink-0 text-xs text-slate-500">模型</Typography.Text>
+                            <CloudSelect
+                                className="flex-1 nodrag nopan nowheel"
+                                value={data.model}
+                                options={modelOptions}
+                                onChange={(value) => handlePatch({ model: value as string })}
+                                placeholder="选择视频模型"
+                            />
+                        </div>
+                        {/* 宽高比 + 分辨率 */}
+                        <div className="flex items-center gap-2">
+                            <Typography.Text className="w-16 shrink-0 text-xs text-slate-500">宽高比</Typography.Text>
+                            <CloudSelect
+                                className="flex-1 nodrag nopan nowheel"
+                                value={data.aspectRatio}
+                                options={VIDEO_ASPECT_RATIOS}
+                                onChange={(value) => handlePatch({ aspectRatio: value as string })}
+                            />
+                            <Typography.Text className="shrink-0 text-xs text-slate-500">分辨率</Typography.Text>
+                            <CloudSelect
+                                className="flex-1 nodrag nopan nowheel"
+                                value={data.resolution}
+                                options={VIDEO_RESOLUTIONS}
+                                onChange={(value) => handlePatch({ resolution: value as string })}
+                            />
+                        </div>
+                        {/* 时长 */}
+                        <div className="flex items-center gap-2">
+                            <Typography.Text className="w-16 shrink-0 text-xs text-slate-500">时长</Typography.Text>
+                            <InputNumber
+                                className="flex-1 nodrag nopan nowheel"
+                                value={data.duration || null}
+                                min={VIDEO_DURATION_CONFIG.min}
+                                max={VIDEO_DURATION_CONFIG.max}
+                                step={VIDEO_DURATION_CONFIG.step}
+                                placeholder="自动（4-12秒）"
+                                addonAfter="秒"
+                                onChange={(value) => handlePatch({ duration: value ?? 0 })}
+                            />
+                        </div>
+                        {/* 音频 + 固定镜头 */}
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    size="small"
+                                    checked={data.audio}
+                                    onChange={(checked) => handlePatch({ audio: checked })}
+                                />
+                                <Typography.Text className="text-xs text-slate-600">生成音频</Typography.Text>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    size="small"
+                                    checked={data.cameraFixed}
+                                    onChange={(checked) => handlePatch({ cameraFixed: checked })}
+                                />
+                                <Typography.Text className="text-xs text-slate-600">固定镜头</Typography.Text>
+                            </div>
+                        </div>
+                        {/* 提示词 */}
                         <Input.TextArea
+                            className="nodrag nopan nowheel"
                             value={data.prompt}
                             onChange={(event) => handlePatch({ prompt: event.target.value })}
                             placeholder="补充视频节点自己的提示词，例如镜头运动和节奏描述"
                             autoSize={{ minRows: 3, maxRows: 6 }}
                         />
-                        <div className="grid grid-cols-2 gap-3 nodrag nopan nowheel">
-                            <CloudSelect className="nodrag nopan nowheel" value={data.model} options={modelOptions} onChange={(value) => handlePatch({ model: String(value) })} />
-                            <CloudSelect className="nodrag nopan nowheel" value={data.aspectRatio} options={VIDEO_ASPECT_RATIOS} onChange={(value) => handlePatch({ aspectRatio: String(value) })} />
-                            <CloudSelect className="nodrag nopan nowheel" value={data.resolution} options={IMAGE_RESOLUTIONS} onChange={(value) => handlePatch({ resolution: String(value) })} />
-                            <CloudSelect className="nodrag nopan nowheel" value={data.style} options={VIDEO_STYLE_OPTIONS} onChange={(value) => handlePatch({ style: value ? String(value) : undefined })} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <label className="flex flex-col gap-1 text-xs text-slate-500">
-                                时长（秒）
-                                <InputNumber
-                                    min={VIDEO_DURATION_CONFIG.min}
-                                    max={VIDEO_DURATION_CONFIG.max}
-                                    step={VIDEO_DURATION_CONFIG.step}
-                                    value={data.duration}
-                                    onChange={(value) => handlePatch({ duration: Number(value ?? 0) })}
-                                    className="w-full nodrag nopan nowheel"
-                                />
-                            </label>
-                            <div className="grid grid-cols-1 gap-2 rounded-2xl bg-slate-50 p-3 text-xs text-slate-600">
-                                <label className="flex items-center justify-between gap-2">
-                                    高清输出
-                                    <Switch size="small" checked={data.hd} onChange={(checked) => handlePatch({ hd: checked })} />
-                                </label>
-                                <label className="flex items-center justify-between gap-2">
-                                    添加水印
-                                    <Switch size="small" checked={data.watermark} onChange={(checked) => handlePatch({ watermark: checked })} />
-                                </label>
-                                <label className="flex items-center justify-between gap-2">
-                                    故事板模式
-                                    <Switch size="small" checked={data.storyboard} onChange={(checked) => handlePatch({ storyboard: checked })} />
-                                </label>
-                            </div>
-                        </div>
                         <PreviewSection title="最终提示词预览">
                             <Typography.Paragraph style={{ marginBottom: 0 }} className="whitespace-pre-wrap text-xs text-slate-600">
                                 {data.finalPrompt || '等待输入提示词或连接文本节点'}
@@ -111,34 +141,20 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
                 selected={selected}
                 subtitle={`模型：${data.model || '未设置'} · 比例：${data.aspectRatio}`}
             >
-                <div className="space-y-3">
-                    <PreviewSection title="提示词来源">
-                        <Typography.Paragraph style={{ marginBottom: 0 }} className="line-clamp-4 whitespace-pre-wrap text-sm text-slate-700">
-                            {data.finalPrompt || '暂无提示词'}
-                        </Typography.Paragraph>
+                <div className="space-y-3 border-t border-slate-200/80 pt-3">
+                    <PreviewSection title="视频预览">
+                        <button
+                            onClick={() => message.info('视频上传功能正在开发')}
+                            className="nodrag nopan nowheel flex h-56 w-full items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-100/70 transition-all hover:border-sky-400 hover:bg-sky-50/50"
+                        >
+                            <div className="flex flex-col items-center gap-2">
+                                <PlusOutlined className="text-3xl text-slate-400 transition-colors group-hover:text-sky-500" />
+                                <Typography.Text className="text-xs text-slate-500">
+                                    点击添加视频
+                                </Typography.Text>
+                            </div>
+                        </button>
                     </PreviewSection>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-                        <span>时长：{data.duration}s</span>
-                        <span>分辨率：{data.resolution}</span>
-                        <span>参考图：{data.referenceImageUrl ? '已连接' : '无'}</span>
-                        <span>进度：{data.progress}%</span>
-                    </div>
-                    {data.errorMessage ? (
-                        <Typography.Text className="block rounded-2xl bg-rose-50 px-3 py-2 text-xs text-rose-600">
-                            {data.errorMessage}
-                        </Typography.Text>
-                    ) : null}
-                    {data.outputVideos.length ? (
-                        <div className="space-y-2">
-                            {data.outputVideos.slice(0, 2).map((video) => (
-                                <video key={video.url} src={video.url} controls className="h-40 w-full rounded-2xl bg-slate-950 object-cover" />
-                            ))}
-                        </div>
-                    ) : (
-                        <Typography.Text className="block text-xs text-slate-400">
-                            视频完成后，这里会出现预览。
-                        </Typography.Text>
-                    )}
                 </div>
                 <Handle
                     type="target"

@@ -92,16 +92,26 @@ export const ASPECT_RATIOS = [
   { label: '3:4', value: '3:4' },
 ];
 
-/** 视频节点宽高比配置 */
+/** 视频节点宽高比配置（与 VideoGenerationRequest.aspect_ratio 对齐） */
 export const VIDEO_ASPECT_RATIOS = [
   { label: '16:9', value: '16:9' },
   { label: '9:16', value: '9:16' },
+  { label: '1:1', value: '1:1' },
+  { label: '4:3', value: '4:3' },
+  { label: '3:4', value: '3:4' },
+  { label: '21:9', value: '21:9' },
 ];
 
-/** 视频节点时长配置 */
+/** 视频节点输出分辨率配置（与 VideoGenerationRequest.metadata.resolution 对齐） */
+export const VIDEO_RESOLUTIONS = [
+  { label: '720p（默认）', value: '720p' },
+  { label: '480p', value: '480p' },
+];
+
+/** 视频节点时长配置（API 约束：4-12 秒，0 表示不指定） */
 export const VIDEO_DURATION_CONFIG = {
-  min: 0,
-  max: 25,
+  min: 4,
+  max: 12,
   step: 1,
   defaultValue: 0,
 } as const;

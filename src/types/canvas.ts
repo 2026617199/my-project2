@@ -64,10 +64,8 @@ export interface VideoNodeData extends BaseMediaNodeData {
   aspectRatio: string
   duration: number
   resolution: string
-  hd: boolean
-  watermark: boolean
-  storyboard: boolean
-  style?: string
+  audio: boolean
+  cameraFixed: boolean
   taskId?: string
   referenceImageUrl?: string
   outputVideos: GeneratedVideoResult[]

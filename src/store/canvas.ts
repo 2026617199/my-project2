@@ -12,6 +12,7 @@ import {
   VIDEO_ASPECT_RATIOS,
   VIDEO_DURATION_CONFIG,
   VIDEO_MODELS,
+  VIDEO_RESOLUTIONS,
 } from '@/constants/ai-models'
 import {
   createChatCompletion,
@@ -170,11 +171,9 @@ function createNodeFactory(type: CanvasNodeType, position: XYPosition): CanvasNo
       model: VIDEO_MODELS[0]?.model ?? '',
       aspectRatio: VIDEO_ASPECT_RATIOS[0]?.value ?? '16:9',
       duration: VIDEO_DURATION_CONFIG.defaultValue,
-      resolution: IMAGE_RESOLUTIONS[0]?.value ?? '1K',
-      hd: false,
-      watermark: false,
-      storyboard: false,
-      style: undefined,
+      resolution: VIDEO_RESOLUTIONS[0]?.value ?? '720p',
+      audio: false,
+      cameraFixed: false,
       referenceImageUrl: undefined,
       outputVideos: [],
     },
@@ -1054,15 +1053,13 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     const response = (await createVideoGeneration({
       model: node.data.model,
       prompt: normalizedPrompt,
-      duration: node.data.duration,
+      duration: node.data.duration > 0 ? node.data.duration : undefined,
       aspect_ratio: node.data.aspectRatio,
       image_urls: node.data.referenceImageUrl ? [node.data.referenceImageUrl] : undefined,
       metadata: {
-        hd: node.data.hd,
-        watermark: node.data.watermark,
-        storyboard: node.data.storyboard,
-        style: node.data.style,
         resolution: node.data.resolution,
+        audio: node.data.audio,
+        camerafixed: node.data.cameraFixed,
       },
     })) as { id: string; status?: string; progress?: number; error?: { message?: string } }
 
