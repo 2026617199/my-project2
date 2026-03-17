@@ -1,5 +1,6 @@
 import { addEdge, applyEdgeChanges, applyNodeChanges, type Connection, type EdgeChange, type NodeChange, type XYPosition } from '@xyflow/react'
 import { create } from 'zustand'
+import { message } from 'antd'
 
 import {
   IMAGE_COUNTS,
@@ -7,11 +8,13 @@ import {
   IMAGE_ORIENTATIONS,
   IMAGE_RESOLUTIONS,
   IMAGE_SIZES,
+  TEXT_MODELS,
   VIDEO_ASPECT_RATIOS,
   VIDEO_DURATION_CONFIG,
   VIDEO_MODELS,
 } from '@/constants/ai-models'
 import {
+  createChatCompletion,
   createImageGeneration,
   createVideoGeneration,
   getImageTaskStatus,
@@ -63,6 +66,7 @@ interface CanvasStoreState {
   viewport: CanvasViewport
   hydrated: boolean
   createNode: (type: CanvasNodeType, position: XYPosition) => void
+  createNodeAtRandom: (type: CanvasNodeType) => void
   applyNodeChanges: (changes: NodeChange<CanvasNode>[]) => void
   applyEdgeChanges: (changes: EdgeChange<CanvasEdge>[]) => void
   connectNodes: (connection: Connection) => void
@@ -94,6 +98,24 @@ function createNodeFactory(type: CanvasNodeType, position: XYPosition): CanvasNo
     errorMessage: undefined,
   }
 
+  if (type === CANVAS_NODE_TYPES.agent) {
+    return {
+      id,
+      type,
+      position,
+      data: {
+        ...baseData,
+        title: '小说改剧本',
+        agentType: 'novel-to-script',
+        roleDefinition: '',
+        prompt: '',
+        finalPrompt: '',
+        promptSegments: [],
+        outputText: '',
+        model: TEXT_MODELS[0]?.model ?? '',
+      },
+    }
+  }
   if (type === CANVAS_NODE_TYPES.text) {
     return {
       id,
@@ -152,19 +174,88 @@ function createNodeFactory(type: CanvasNodeType, position: XYPosition): CanvasNo
   }
 }
 
+function getRandomFlowPosition(viewport: CanvasViewport): XYPosition {
+  const canvasHeight = Math.max(window.innerHeight - 65, 480)
+  const canvasWidth = Math.max(window.innerWidth, 640)
+  const paddingX = 170
+  const paddingY = 120
+  const safeMinScreenX = paddingX
+  const safeMaxScreenX = Math.max(paddingX + 1, canvasWidth - paddingX)
+  const safeMinScreenY = paddingY
+  const safeMaxScreenY = Math.max(paddingY + 1, canvasHeight - paddingY)
+
+  const screenX = safeMinScreenX + Math.random() * (safeMaxScreenX - safeMinScreenX)
+  const screenY = safeMinScreenY + Math.random() * (safeMaxScreenY - safeMinScreenY)
+
+  return {
+    x: (screenX - viewport.x) / viewport.zoom,
+    y: (screenY - viewport.y) / viewport.zoom,
+  }
+}
 function buildEdgeId(connection: Connection) {
   return `edge-${connection.source}-${connection.target}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
 }
 
+function extractChatText(response: any): string {
+  const content = response?.choices?.[0]?.message?.content
+  if (typeof content === 'string') {
+    return content.trim()
+  }
+
+  if (Array.isArray(content)) {
+    const merged = content
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item
+        }
+
+        if (item && typeof item === 'object' && 'text' in item && typeof item.text === 'string') {
+          return item.text
+        }
+
+        return ''
+      })
+      .join('\n')
+      .trim()
+
+    return merged
+  }
+
+  return ''
+}
 function sortByCreatedAt<T extends { createdAt: number }>(items: T[]) {
   return [...items].sort((a, b) => a.createdAt - b.createdAt)
 }
 
+function buildNovelToScriptPrompt(content: string, roleDefinition: string) {
+  const roleSection = roleDefinition.trim()
+    ? `角色定义：\n${roleDefinition.trim()}\n\n`
+    : ''
+
+  return [
+    '你是一名专业编剧，请将输入的小说内容改写成可拍摄的中文影视剧本。',
+    '输出要求：',
+    '1) 使用标准剧本结构（场景标题、人物名、对白、动作描述）。',
+    '2) 保留原始情节主线，不随意新增关键设定。',
+    '3) 优先提高镜头可拍性与对白自然度。',
+    '4) 直接输出剧本文本，不要解释过程。',
+    '',
+    roleSection,
+    '小说内容：',
+    content,
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
 function recomputeDerivedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]))
 
   return nodes.map((node) => {
-    if (node.type !== CANVAS_NODE_TYPES.image && node.type !== CANVAS_NODE_TYPES.video) {
+    if (
+      node.type !== CANVAS_NODE_TYPES.image &&
+      node.type !== CANVAS_NODE_TYPES.video &&
+      node.type !== CANVAS_NODE_TYPES.agent
+    ) {
       return node
     }
 
@@ -200,6 +291,16 @@ function recomputeDerivedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
       }
     }
 
+    if (node.type === CANVAS_NODE_TYPES.agent) {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          promptSegments,
+          finalPrompt,
+        },
+      }
+    }
     const referenceEdges = sortByCreatedAt(
       edges
         .filter((edge) => edge.target === node.id && edge.data?.relationType === 'reference-image')
@@ -270,13 +371,21 @@ function replaceNode(nodes: CanvasNode[], nodeId: string, updater: (node: Canvas
   return nodes.map((node) => (node.id === nodeId ? updater(node) : node))
 }
 
+function compactPatch(patch: CanvasNodePatch) {
+  return Object.fromEntries(
+    Object.entries(patch).filter(([, value]) => value !== undefined),
+  ) as CanvasNodePatch
+}
+
 function applyPatchToNode(node: CanvasNode, patch: CanvasNodePatch): CanvasNode {
+  const normalizedPatch = compactPatch(patch)
+
   if (node.type === CANVAS_NODE_TYPES.text) {
     return {
       ...node,
       data: {
         ...node.data,
-        ...(patch as Partial<typeof node.data>),
+        ...(normalizedPatch as Partial<typeof node.data>),
         errorMessage: patch.errorMessage === undefined ? node.data.errorMessage : patch.errorMessage,
       },
     }
@@ -287,20 +396,35 @@ function applyPatchToNode(node: CanvasNode, patch: CanvasNodePatch): CanvasNode 
       ...node,
       data: {
         ...node.data,
-        ...(patch as Partial<typeof node.data>),
+        ...(normalizedPatch as Partial<typeof node.data>),
         errorMessage: patch.errorMessage === undefined ? node.data.errorMessage : patch.errorMessage,
       },
     }
   }
 
-  return {
-    ...node,
-    data: {
-      ...node.data,
-      ...(patch as Partial<typeof node.data>),
-      errorMessage: patch.errorMessage === undefined ? node.data.errorMessage : patch.errorMessage,
-    },
+  if (node.type === CANVAS_NODE_TYPES.video) {
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        ...(normalizedPatch as Partial<typeof node.data>),
+        errorMessage: patch.errorMessage === undefined ? node.data.errorMessage : patch.errorMessage,
+      },
+    }
   }
+
+  if (node.type === CANVAS_NODE_TYPES.agent) {
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        ...(normalizedPatch as Partial<typeof node.data>),
+        errorMessage: patch.errorMessage === undefined ? node.data.errorMessage : patch.errorMessage,
+      },
+    }
+  }
+
+  return node
 }
 
 function withRecomputedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
@@ -447,6 +571,18 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
   createNode: (type, position) => {
     const nextNodes = withRecomputedNodes([...get().nodes, createNodeFactory(type, position)], get().edges)
     set({ nodes: nextNodes, selectedNodeId: nextNodes.at(-1)?.id ?? null, selectedEdgeId: null, contextMenu: EMPTY_CONTEXT_MENU })
+  },
+
+  createNodeAtRandom: (type) => {
+    const position = getRandomFlowPosition(get().viewport)
+    const nextNode = createNodeFactory(type, position)
+    const nextNodes = withRecomputedNodes([...get().nodes, nextNode], get().edges)
+    set({
+      nodes: nextNodes,
+      selectedNodeId: nextNode.id,
+      selectedEdgeId: null,
+      contextMenu: EMPTY_CONTEXT_MENU,
+    })
   },
 
   applyNodeChanges: (changes) => {
@@ -629,7 +765,12 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
   runNode: async (nodeId) => {
     const state = get()
     const node = state.nodes.find((item) => item.id === nodeId)
-    if (!node || (node.type !== CANVAS_NODE_TYPES.image && node.type !== CANVAS_NODE_TYPES.video)) {
+    if (
+      !node ||
+      (node.type !== CANVAS_NODE_TYPES.image &&
+        node.type !== CANVAS_NODE_TYPES.video &&
+        node.type !== CANVAS_NODE_TYPES.agent)
+    ) {
       return
     }
 
@@ -672,6 +813,131 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
       }
 
       await pollImageGeneration(response.id, nodeId)
+      return
+    }
+
+    if (node.type === CANVAS_NODE_TYPES.agent) {
+      get().updateNodeData(nodeId, {
+        status: 'queued',
+        progress: 0,
+        errorMessage: undefined,
+      })
+
+      try {
+        get().updateNodeData(nodeId, {
+          status: 'running',
+          progress: 25,
+        })
+
+        const response = await createChatCompletion({
+          model: node.data.model || TEXT_MODELS[0]?.model,
+          messages: [
+            {
+              role: 'system',
+              content: '你是一个将小说改写为影视剧本的智能体。',
+            },
+            {
+              role: 'user',
+              content: buildNovelToScriptPrompt(node.data.finalPrompt, node.data.roleDefinition),
+            },
+          ],
+          temperature: 0.6,
+        })
+
+        const generatedText = extractChatText(response)
+        if (!generatedText) {
+          get().updateNodeData(nodeId, {
+            status: 'error',
+            progress: 0,
+            errorMessage: '智能体未返回有效文本，请稍后重试。',
+          })
+          message.error('智能体未返回有效文本，请稍后重试。')
+          return
+        }
+
+        const freshState = get()
+        const refreshedAgent = freshState.nodes.find((item) => item.id === nodeId)
+        if (!refreshedAgent || refreshedAgent.type !== CANVAS_NODE_TYPES.agent) {
+          return
+        }
+
+        const resultTextNode = createNodeFactory(CANVAS_NODE_TYPES.text, {
+          x: refreshedAgent.position.x + 360 + Math.random() * 60,
+          y: refreshedAgent.position.y + (Math.random() * 160 - 80),
+        })
+
+        const completedAgentNodes = replaceNode(freshState.nodes, nodeId, (currentNode) => {
+          if (currentNode.type !== CANVAS_NODE_TYPES.agent) {
+            return currentNode
+          }
+
+          return applyPatchToNode(currentNode, {
+            status: 'success',
+            progress: 100,
+            outputText: generatedText,
+            errorMessage: undefined,
+          })
+        })
+
+        const nextNodes = withRecomputedNodes(
+          replaceNode([...completedAgentNodes, resultTextNode], resultTextNode.id, (textNode) => {
+            if (textNode.type !== CANVAS_NODE_TYPES.text) {
+              return textNode
+            }
+
+            return applyPatchToNode(textNode, {
+              title: '剧本结果',
+              content: generatedText,
+            })
+          }),
+          freshState.edges,
+        )
+
+        const relationType = getConnectionRelation(CANVAS_NODE_TYPES.agent, CANVAS_NODE_TYPES.text)
+        const nextEdges = relationType
+          ? (addEdge(
+              {
+                id: buildEdgeId({
+                  source: nodeId,
+                  target: resultTextNode.id,
+                  sourceHandle: null,
+                  targetHandle: null,
+                }),
+                sourceHandle: null,
+                targetHandle: null,
+                type: 'semantic',
+                source: nodeId,
+                target: resultTextNode.id,
+                data: {
+                  relationType,
+                  createdAt: Date.now(),
+                },
+                animated: false,
+                deletable: true,
+                selectable: true,
+                reconnectable: true,
+              },
+              freshState.edges,
+            ) as CanvasEdge[])
+          : freshState.edges
+
+        set({
+          nodes: withRecomputedNodes(nextNodes, nextEdges),
+          edges: nextEdges,
+          selectedNodeId: resultTextNode.id,
+          selectedEdgeId: null,
+        })
+
+        message.success('剧本生成完成，已创建结果文本节点。')
+      } catch {
+        get().updateNodeData(nodeId, {
+          status: 'error',
+          progress: 0,
+          errorMessage: '智能体执行失败，请检查网络或稍后重试。',
+        })
+        message.error('智能体执行失败，请检查网络或稍后重试。')
+      }
+
       return
     }
 

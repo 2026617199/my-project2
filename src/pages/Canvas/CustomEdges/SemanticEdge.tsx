@@ -13,7 +13,8 @@ export default function SemanticEdge({ id, sourceX, sourceY, targetX, targetY, s
     })
 
     const isReference = data?.relationType === 'reference-image'
-    const label = isReference ? '参考图' : '提示词'
+    const isAgentOutput = data?.relationType === 'agent-output'
+    const label = isReference ? '参考图' : isAgentOutput ? '智能体输出' : '提示词'
 
     return (
         <>
@@ -21,7 +22,7 @@ export default function SemanticEdge({ id, sourceX, sourceY, targetX, targetY, s
                 id={id}
                 path={path}
                 style={{
-                    stroke: isReference ? '#7c3aed' : '#0f172a',
+                    stroke: isReference ? '#7c3aed' : isAgentOutput ? '#0f766e' : '#0f172a',
                     strokeWidth: selected ? 3 : 2,
                     strokeDasharray: isReference ? '7 4' : undefined,
                 }}

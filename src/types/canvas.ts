@@ -4,12 +4,13 @@ export const CANVAS_NODE_TYPES = {
   text: 'text',
   image: 'image',
   video: 'video',
+  agent: 'agent',
 } as const
 
 export type CanvasNodeType = (typeof CANVAS_NODE_TYPES)[keyof typeof CANVAS_NODE_TYPES]
 
 export type NodeExecutionStatus = 'idle' | 'queued' | 'running' | 'success' | 'error'
-export type EdgeRelationType = 'prompt' | 'reference-image'
+export type EdgeRelationType = 'prompt' | 'reference-image' | 'agent-output'
 
 export interface PromptSegment {
   edgeId: string
@@ -70,13 +71,22 @@ export interface VideoNodeData extends BaseMediaNodeData {
   outputVideos: GeneratedVideoResult[]
 }
 
-export type CanvasNodeData = TextNodeData | ImageNodeData | VideoNodeData
+export interface AgentNodeData extends BaseMediaNodeData {
+  agentType: 'novel-to-script'
+  roleDefinition: string
+  outputText: string
+  model: string
+  taskId?: string
+}
+
+export type CanvasNodeData = TextNodeData | ImageNodeData | VideoNodeData | AgentNodeData
 
 export type TextCanvasNode = Node<TextNodeData, 'text'>
 export type ImageCanvasNode = Node<ImageNodeData, 'image'>
 export type VideoCanvasNode = Node<VideoNodeData, 'video'>
+export type AgentCanvasNode = Node<AgentNodeData, 'agent'>
 
-export type CanvasNode = TextCanvasNode | ImageCanvasNode | VideoCanvasNode
+export type CanvasNode = TextCanvasNode | ImageCanvasNode | VideoCanvasNode | AgentCanvasNode
 
 export interface CanvasEdgeData extends Record<string, unknown> {
   relationType: EdgeRelationType
@@ -121,12 +131,19 @@ export function getConnectionRelation(
   sourceType?: string | null,
   targetType?: string | null,
 ): EdgeRelationType | null {
-  if (sourceType === CANVAS_NODE_TYPES.text && isMediaNodeType(targetType)) {
+  if (
+    sourceType === CANVAS_NODE_TYPES.text &&
+    (isMediaNodeType(targetType) || targetType === CANVAS_NODE_TYPES.agent)
+  ) {
     return 'prompt'
   }
 
   if (sourceType === CANVAS_NODE_TYPES.image && targetType === CANVAS_NODE_TYPES.video) {
     return 'reference-image'
+  }
+
+  if (sourceType === CANVAS_NODE_TYPES.agent && targetType === CANVAS_NODE_TYPES.text) {
+    return 'agent-output'
   }
 
   return null

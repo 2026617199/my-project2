@@ -17,6 +17,7 @@ import { Button, Layout, Select, Slider, Space, Tooltip, Typography } from 'antd
 import { canvasEdgeTypes } from './CustomEdges'
 import { canvasNodeTypes } from './CustomNodes'
 
+import CanvasLeftToolbar from '@/components/CanvasLeftToolbar'
 import { useCanvasStore } from '@/store/canvas'
 import { CANVAS_NODE_TYPES, canConnectNodes, type CanvasEdge, type CanvasNode } from '@/types/canvas'
 
@@ -85,6 +86,7 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
     const connectNodes = useCanvasStore((state) => state.connectNodes)
     const reconnectExistingEdge = useCanvasStore((state) => state.reconnectEdge)
     const createNode = useCanvasStore((state) => state.createNode)
+    const createNodeAtRandom = useCanvasStore((state) => state.createNodeAtRandom)
     const openContextMenu = useCanvasStore((state) => state.openContextMenu)
     const closeContextMenu = useCanvasStore((state) => state.closeContextMenu)
     const setSelection = useCanvasStore((state) => state.setSelection)
@@ -157,6 +159,13 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
         saveGraph(reactFlow.getViewport())
     }, [reactFlow, saveGraph])
 
+    const handleCreateFromToolbar = useCallback(
+        (type: keyof typeof CANVAS_NODE_TYPES) => {
+            createNodeAtRandom(type)
+        },
+        [createNodeAtRandom],
+    )
+
     const menuItems = useMemo(
         () => [
             {
@@ -190,6 +199,13 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
 
     return (
         <div className="relative h-[calc(100vh-65px)] w-full" onClick={closeContextMenu}>
+            <div className="absolute left-3 top-1/2 z-20 -translate-y-1/2 sm:left-4">
+                <CanvasLeftToolbar
+                    onCreateNode={handleCreateFromToolbar}
+                    onCreateNovelAgent={() => createNodeAtRandom(CANVAS_NODE_TYPES.agent)}
+                />
+            </div>
+
             <div className="absolute right-4 top-4 z-20 flex gap-2">
                 <Tooltip title="恢复最近一次保存">
                     <Button icon={<ReloadOutlined />} onClick={resetToSavedGraph}>
