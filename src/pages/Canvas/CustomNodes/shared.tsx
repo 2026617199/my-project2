@@ -40,7 +40,6 @@ export function NodeShell({
                     <Typography.Text strong className="block text-[15px] text-slate-900">
                         {title}
                     </Typography.Text>
-                    {subtitle ? <div className="mt-1 text-xs text-slate-500">{subtitle}</div> : null}
                 </div>
                 <Tag className={statusClassName}>
                     {statusMeta.label}

@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { Handle, NodeToolbar, Position, type NodeProps } from '@xyflow/react'
 import { Input, Typography } from 'antd'
 
@@ -19,6 +19,8 @@ import type { ImageCanvasNode, ImageNodeData } from '@/types/canvas'
 function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
     const updateNodeData = useCanvasStore((state) => state.updateNodeData)
     const runNode = useCanvasStore((state) => state.runNode)
+    const [isImageLoading, setIsImageLoading] = useState(false)
+    const [hasImageLoadError, setHasImageLoadError] = useState(false)
 
     const modelOptions = useMemo(
         () => IMAGE_MODELS.map((item) => ({ label: item.name, value: item.model })),
@@ -31,6 +33,19 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
         },
         [id, updateNodeData],
     )
+
+    const previewImageUrl = data.outputImages[0]?.url
+
+    useEffect(() => {
+        if (!previewImageUrl) {
+            setIsImageLoading(false)
+            setHasImageLoadError(false)
+            return
+        }
+
+        setIsImageLoading(true)
+        setHasImageLoadError(false)
+    }, [previewImageUrl])
 
     return (
         <>
@@ -72,34 +87,51 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
                 selected={selected}
                 subtitle={`模型：${data.model || '未设置'} · 尺寸：${data.size}`}
             >
-                <div className="space-y-3">
-                    <PreviewSection title="提示词来源">
-                        <Typography.Paragraph className="mb-0! line-clamp-4 whitespace-pre-wrap text-sm text-slate-700">
-                            {data.finalPrompt || '暂无提示词'}
-                        </Typography.Paragraph>
+                <div className="space-y-3 border-t border-slate-200/80 pt-3">
+                    <PreviewSection title="图片预览">
+                        <div className="nodrag nopan nowheel">
+                            {previewImageUrl ? (
+                                <div className="relative h-56 w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                                    <img
+                                        src={previewImageUrl}
+                                        alt="生成结果"
+                                        className={`h-full w-full object-cover transition-opacity duration-300 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
+                                        onLoad={() => setIsImageLoading(false)}
+                                        onError={() => {
+                                            setIsImageLoading(false)
+                                            setHasImageLoadError(true)
+                                        }}
+                                    />
+                                    {isImageLoading && !hasImageLoadError ? (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-white/75 backdrop-blur-[1px]">
+                                            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-sm">
+                                                <span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />
+                                                图片加载中...
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                    {hasImageLoadError ? (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-rose-50/95 p-3 text-center text-xs text-rose-600">
+                                            图片加载失败，请重试生成或检查图片链接。
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : (
+                                <div className="flex h-56 w-full items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-100/70 text-center">
+                                    <Typography.Text className="px-4 text-xs text-slate-500">
+                                        暂无图片输出
+                                        <br />
+                                        点击“生成图片”后将在此处预览
+                                    </Typography.Text>
+                                </div>
+                            )}
+                        </div>
                     </PreviewSection>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
-                        <span>分辨率：{data.resolution}</span>
-                        <span>方向：{data.orientation}</span>
-                        <span>张数：{data.count}</span>
-                        <span>进度：{data.progress}%</span>
-                    </div>
                     {data.errorMessage ? (
                         <Typography.Text className="block rounded-2xl bg-rose-50 px-3 py-2 text-xs text-rose-600">
                             {data.errorMessage}
                         </Typography.Text>
                     ) : null}
-                    {data.outputImages.length ? (
-                        <div className="grid grid-cols-2 gap-2">
-                            {data.outputImages.slice(0, 4).map((image) => (
-                                <img key={image.url} src={image.url} alt="生成结果" className="h-28 w-full rounded-2xl object-cover" />
-                            ))}
-                        </div>
-                    ) : (
-                        <Typography.Text className="block text-xs text-slate-400">
-                            生成完成后，这里会展示图片结果。
-                        </Typography.Text>
-                    )}
                 </div>
                 <Handle type="target" position={Position.Left} className="h-3! w-3! border-2! border-white! bg-slate-400!" />
                 <Handle type="source" position={Position.Right} className="h-3! w-3! border-2! border-white! bg-fuchsia-500!" />
