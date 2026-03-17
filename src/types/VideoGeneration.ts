@@ -5,23 +5,29 @@
 export interface VideoGenerationRequest {
   model: string; // 模型
   prompt: string; // 提示词
-  duration?: number; // 时长
-  aspect_ratio: string; // 宽高比
+  duration?: number; // 时长,只支持4-12秒，单位为秒
+  aspect_ratio?: string; // 宽高比,可选项，“16:9”，“9:16”，“1:1”，“4:3”，“3:4”,"21:9"
   image_urls?: string[]; // 参考图像URL列表
+  // 注意：image_urls 和 image_with_roles 不能同时使用
+  // image_with_roles?: { url: string; role: 'first_frame' | 'last_frame' | 'reference_image' }[]; // 带角色的参考图像列表，角色可以是背景、角色或物体
   // 直接内联定义嵌套对象
   metadata?: {
-    n?:number; // 生成视频的数量
-    watermark?: boolean; // 是否添加水印
-    hd?: boolean; // 是否生成高清版本
-    resolution?: string; // 输出分辨率偏好，如 1K/2K/4K
-    private?: boolean; // 是否私密
-    // 支持的值有thanksgiving,comic,news,selfie,nostalgic,nostalgic
-    style?: string; // 风格,
-    storyboard?: boolean; // 是否使用故事板功能，更精细地控制视频生成细节
-    character_url?: string; // 用于角色提取的参考视频 URL
-    character_timestamps?: string; // 角色提取的时间戳，格式为 "start-end"，单位为秒，例如 "0-10" 表示提取视频的前10秒作为角色参考
-    character_created?: boolean; // 创建视频完成后，自动根据生成的视频创建角色
-    character_from_task?: string; // 根据已经生成的任务 ID 来创建角色
+    resolution?: string; // 输出分辨率，480p和720p(默认)
+    seed?: number; // 随机种子，整数，范围为-1到4294967295 (前端不用管)
+    audio?: boolean; // 是否生成音频
+    camerafixed?: boolean; // 是否固定镜头
+    // n?:number; // 生成视频的数量
+    // watermark?: boolean; // 是否添加水印
+    // hd?: boolean; // 是否生成高清版本
+    // resolution?: string; // 输出分辨率偏好，如 1K/2K/4K
+    // private?: boolean; // 是否私密
+    // // 支持的值有thanksgiving,comic,news,selfie,nostalgic,nostalgic
+    // style?: string; // 风格,
+    // storyboard?: boolean; // 是否使用故事板功能，更精细地控制视频生成细节
+    // character_url?: string; // 用于角色提取的参考视频 URL
+    // character_timestamps?: string; // 角色提取的时间戳，格式为 "start-end"，单位为秒，例如 "0-10" 表示提取视频的前10秒作为角色参考
+    // character_created?: boolean; // 创建视频完成后，自动根据生成的视频创建角色
+    // character_from_task?: string; // 根据已经生成的任务 ID 来创建角色
   };
 
 }
