@@ -1,7 +1,20 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Handle, NodeToolbar, Position, type NodeProps } from '@xyflow/react'
 import { Input, Typography, message } from 'antd'
-import { PlusOutlined, CloseOutlined } from '@ant-design/icons'
+import { Controlled as ControlledZoom } from 'react-medium-image-zoom'
+import 'react-medium-image-zoom/dist/styles.css'
+import {
+    PlusOutlined,
+    CloseOutlined,
+    ReloadOutlined,
+    DeleteOutlined,
+    ThunderboltOutlined,
+    ExpandOutlined,
+    ScissorOutlined,
+    DownloadOutlined,
+    FullscreenOutlined,
+    FullscreenExitOutlined,
+} from '@ant-design/icons'
 
 import { NodeShell, PreviewSection } from './shared'
 
@@ -17,7 +30,12 @@ import {
 import { uploadImage } from '@/api/ai'
 import { useCanvasStore } from '@/store/canvas'
 import type { ImageCanvasNode, ImageNodeData } from '@/types/canvas'
-import type { UploadImageResponse } from '@/types/UploadGeneration'
+
+type ActionToolbarItem = {
+    key: 'redraw' | 'erase' | 'enhance' | 'outpaint' | 'crop' | 'download' | 'fullscreen'
+    label: '重绘' | '擦除' | '增强' | '扩图' | '裁剪' | '下载' | '全屏查看'
+    icon: React.ReactNode
+}
 
 function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
     const updateNodeData = useCanvasStore((state) => state.updateNodeData)
@@ -27,7 +45,12 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
     const [hasImageLoadError, setHasImageLoadError] = useState(false)
     const [isUploadLoading, setIsUploadLoading] = useState(false)
     const [uploadError, setUploadError] = useState<string | undefined>(undefined)
+    const [activeToolbarAction, setActiveToolbarAction] = useState<ActionToolbarItem['key'] | null>(
+        null,
+    )
+    const [isImageZoomed, setIsImageZoomed] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const toolbarActionTimerRef = useRef<number | null>(null)
 
     const modelOptions = useMemo(
         () => IMAGE_MODELS.map((item) => ({ label: item.name, value: item.model })),
@@ -132,6 +155,70 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
 
     const previewImageUrl = data.outputImages[0]?.url
 
+    const actionToolbarItems = useMemo<ActionToolbarItem[]>(
+        () => [
+            { key: 'redraw', label: '重绘', icon: <ReloadOutlined className="text-[24px]" /> },
+            { key: 'erase', label: '擦除', icon: <DeleteOutlined className="text-[24px]" /> },
+            { key: 'enhance', label: '增强', icon: <ThunderboltOutlined className="text-[24px]" /> },
+            { key: 'outpaint', label: '扩图', icon: <ExpandOutlined className="text-[24px]" /> },
+            { key: 'crop', label: '裁剪', icon: <ScissorOutlined className="text-[24px]" /> },
+            { key: 'download', label: '下载', icon: <DownloadOutlined className="text-[24px]" /> },
+            {
+                key: 'fullscreen',
+                label: '全屏查看',
+                icon: isImageZoomed ? (
+                    <FullscreenExitOutlined className="text-[24px]" />
+                ) : (
+                    <FullscreenOutlined className="text-[24px]" />
+                ),
+            },
+        ],
+        [isImageZoomed],
+    )
+
+    const showActionFeedback = useCallback((action: ActionToolbarItem['key'], label: string) => {
+        setActiveToolbarAction(action)
+
+        if (toolbarActionTimerRef.current) {
+            window.clearTimeout(toolbarActionTimerRef.current)
+        }
+
+        toolbarActionTimerRef.current = window.setTimeout(() => {
+            setActiveToolbarAction((prev) => (prev === action ? null : prev))
+        }, 320)
+
+        message.info(`${label}事件已触发（占位功能）`)
+    }, [])
+
+    const toggleImageZoom = useCallback(() => {
+        if (!previewImageUrl) {
+            message.warning('当前没有可全屏查看的图片')
+            return
+        }
+
+        setIsImageZoomed((prev) => !prev)
+    }, [previewImageUrl])
+
+    const handleToolbarAction = useCallback(
+        (item: ActionToolbarItem) => {
+            setActiveToolbarAction(item.key)
+
+            if (item.key === 'fullscreen') {
+                toggleImageZoom()
+                if (toolbarActionTimerRef.current) {
+                    window.clearTimeout(toolbarActionTimerRef.current)
+                }
+                toolbarActionTimerRef.current = window.setTimeout(() => {
+                    setActiveToolbarAction((prev) => (prev === 'fullscreen' ? null : prev))
+                }, 320)
+                return
+            }
+
+            showActionFeedback(item.key, item.label)
+        },
+        [showActionFeedback, toggleImageZoom],
+    )
+
     useEffect(() => {
         if (!previewImageUrl) {
             setIsImageLoading(false)
@@ -143,8 +230,46 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
         setHasImageLoadError(false)
     }, [previewImageUrl])
 
+    useEffect(() => {
+        return () => {
+            if (toolbarActionTimerRef.current) {
+                window.clearTimeout(toolbarActionTimerRef.current)
+            }
+        }
+    }, [])
+
     return (
         <>
+            <NodeToolbar isVisible position={Position.Top} offset={10 * zoom}>
+                <div
+                    className={`nodrag nopan nowheel inline-flex h-10 items-center gap-1 rounded-xl border border-slate-200 bg-white/95 px-2 shadow-[0_10px_30px_rgba(15,23,42,0.16)] backdrop-blur-md transition-all duration-200 ${selected
+                        ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
+                        : 'pointer-events-none -translate-y-2 scale-95 opacity-0'
+                        }`}
+                    style={{ transform: `scale(${zoom})`, transformOrigin: 'bottom center' }}
+                >
+                    {actionToolbarItems.map((item) => {
+                        const isActive = item.key === 'fullscreen' ? isImageZoomed : activeToolbarAction === item.key
+
+                        return (
+                            <button
+                                key={item.key}
+                                type="button"
+                                onClick={() => void handleToolbarAction(item)}
+                                className={`nodrag nopan nowheel inline-flex h-8 items-center gap-1.5 rounded-lg border px-2 text-xs font-medium transition-all duration-200 ${isActive
+                                    ? 'border-sky-300 bg-sky-50 text-sky-700 shadow-[0_0_0_1px_rgba(125,211,252,0.4)]'
+                                    : 'border-transparent bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800'
+                                    }`}
+                                title={item.label}
+                                aria-label={item.label}
+                            >
+                                <span className="flex h-6 w-6 items-center justify-center">{item.icon}</span>
+                                <span>{item.label}</span>
+                            </button>
+                        )
+                    })}
+                </div>
+            </NodeToolbar>
             <NodeToolbar isVisible={selected} position={Position.Bottom} offset={20 * zoom}>
                 <div
                     className="w-150 rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.14)] backdrop-blur-lg"
@@ -192,16 +317,22 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
                             {previewImageUrl ? (
                                 <div className="space-y-2">
                                     <div className="relative h-56 w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-                                        <img
-                                            src={previewImageUrl}
-                                            alt="生成结果"
-                                            className={`h-full w-full object-cover transition-opacity duration-300 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
-                                            onLoad={() => setIsImageLoading(false)}
-                                            onError={() => {
-                                                setIsImageLoading(false)
-                                                setHasImageLoadError(true)
-                                            }}
-                                        />
+                                        <ControlledZoom
+                                            isZoomed={isImageZoomed}
+                                            onZoomChange={setIsImageZoomed}
+                                            zoomMargin={24}
+                                        >
+                                            <img
+                                                src={previewImageUrl}
+                                                alt="生成结果"
+                                                className={`h-full w-full cursor-zoom-in object-cover transition-opacity duration-300 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
+                                                onLoad={() => setIsImageLoading(false)}
+                                                onError={() => {
+                                                    setIsImageLoading(false)
+                                                    setHasImageLoadError(true)
+                                                }}
+                                            />
+                                        </ControlledZoom>
                                         {isImageLoading && !hasImageLoadError ? (
                                             <div className="absolute inset-0 flex items-center justify-center bg-white/75 backdrop-blur-[1px]">
                                                 <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 shadow-sm">

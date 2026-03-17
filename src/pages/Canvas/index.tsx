@@ -366,7 +366,7 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 <CanvasLeftToolbar
                     onCreateNode={handleCreateFromToolbar}
                     onCreateNovelAgent={() => createNodeAtRandom(CANVAS_NODE_TYPES.agent)}
-                    zoom={viewport.zoom}
+
                 />
             </div>
 
