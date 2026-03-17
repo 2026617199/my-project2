@@ -1,16 +1,23 @@
+
 /**
- * 图片生成 - 请求体类型
+ * 图片生成 - 请求体类型(针对Doubeao Seedream 4.0模型)
  */
 export interface ImageGenerationRequest {
   model: string; // 模型名称，如 "gemini-3-pro-image-preview"
   prompt: string; // 提示词
-  size?: string; // 图片尺寸比例，如 "16:9", "4:3", "1:1"
-  n?: number; // 生成图片数量
+  size?: string; // 图片尺寸比例，支持的宽高比：1:1(正方形，默认)、4:3(横向)、3:4(竖向)、16:9(横向宽屏)、9:16(竖向长图)、3:2(横向)、2:3(竖向)、21:9(超宽屏)、9:21(超窄屏)、auto(自动匹配参考图像比例，需要提供 image_urls)
+  n?: number; // 生成图片数量(目前只支持1张)
   image_urls?: string[]; // 参考图片 URL 列表
   // 直接内联定义嵌套对象
   metadata?: {
     resolution?: string; // 分辨率，如 "1K", "2K", "4K"
     orientation?: string; // 方向，如 "landscape"(横向), "portrait"(纵向)
+    optimize_prompt_options?: {
+      mode?: string; // 有standard：标准模式（默认）和fast：快速模式两种
+    };
+    // sequential_image_generation?: string; // 是否启用顺序生成模式，默认为 false
+    // sequential_image_generation_options?: any; // 顺序生成模式的可选参数，具体参数结构根据模型而定
+    watermark?: boolean; // 是否添加水印，默认为 false
   };
 }
 

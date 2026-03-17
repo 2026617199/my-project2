@@ -366,6 +366,7 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 <CanvasLeftToolbar
                     onCreateNode={handleCreateFromToolbar}
                     onCreateNovelAgent={() => createNodeAtRandom(CANVAS_NODE_TYPES.agent)}
+                    zoom={viewport.zoom}
                 />
             </div>
 
@@ -411,7 +412,7 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 onSelectionChange={({ nodes: selectedNodes, edges: selectedEdges }) => {
                     setSelection(selectedNodes[0]?.id ?? null, selectedEdges[0]?.id ?? null)
                 }}
-                onMoveEnd={(_, nextViewport) => {
+                onMove={(_, nextViewport) => {
                     if (isProgrammaticViewportSyncRef.current) {
                         return
                     }

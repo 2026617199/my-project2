@@ -109,14 +109,14 @@ export const VIDEO_DURATION_CONFIG = {
 /** 图片生成模型配置 */
 export const IMAGE_MODELS = [
   // Gemini 系列
-  { id: 1, name: 'gemini-3-pro-image-preview', model: 'gemini-3-pro-image-preview', platform: 'Gemini' },
-  { id: 2, name: 'gemini-3.1-flash-image-preview', model: 'gemini-3.1-flash-image-preview', platform: 'Gemini' },
-  { id: 3, name: 'gemini-2.5-flash-image-preview', model: 'gemini-2.5-flash-image-preview', platform: 'Gemini' },
-  { id: 4, name: 'gemini-3-pro-image-preview-official', model: 'gemini-3-pro-image-preview-official', platform: 'Gemini' },
-  { id: 5, name: 'gemini-3.1-flash-image-preview-official', model: 'gemini-3.1-flash-image-preview-official', platform: 'Gemini' },
-  { id: 6, name: 'gemini-2.5-flash-image-official', model: 'gemini-2.5-flash-image-official', platform: 'Gemini' },
+  // { id: 1, name: 'gemini-3-pro-image-preview', model: 'gemini-3-pro-image-preview', platform: 'Gemini' },
+  // { id: 2, name: 'gemini-3.1-flash-image-preview', model: 'gemini-3.1-flash-image-preview', platform: 'Gemini' },
+  // { id: 3, name: 'gemini-2.5-flash-image-preview', model: 'gemini-2.5-flash-image-preview', platform: 'Gemini' },
+  // { id: 4, name: 'gemini-3-pro-image-preview-official', model: 'gemini-3-pro-image-preview-official', platform: 'Gemini' },
+  // { id: 5, name: 'gemini-3.1-flash-image-preview-official', model: 'gemini-3.1-flash-image-preview-official', platform: 'Gemini' },
+  // { id: 6, name: 'gemini-2.5-flash-image-official', model: 'gemini-2.5-flash-image-official', platform: 'Gemini' },
   // 其他模型
-  { id: 7, name: 'gpt-4o-image', model: 'gpt-4o-image', platform: 'OpenAI' },
+  // { id: 7, name: 'gpt-4o-image', model: 'gpt-4o-image', platform: 'OpenAI' },
   { id: 8, name: 'doubao-seedream-4-0', model: 'doubao-seedream-4-0', platform: 'Seedream' },
   { id: 9, name: 'doubao-seedream-4-5', model: 'doubao-seedream-4-5', platform: 'Seedream' },
   { id: 10, name: 'doubao-seedream-5-0', model: 'doubao-seedream-5-0', platform: 'Seedream' },

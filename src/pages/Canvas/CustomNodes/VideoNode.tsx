@@ -19,6 +19,7 @@ import type { VideoCanvasNode, VideoNodeData } from '@/types/canvas'
 function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
     const updateNodeData = useCanvasStore((state) => state.updateNodeData)
     const runNode = useCanvasStore((state) => state.runNode)
+    const zoom = useCanvasStore((state) => state.viewport.zoom)
 
     const modelOptions = useMemo(
         () => VIDEO_MODELS.map((item) => ({ label: item.name, value: item.model })),
@@ -34,10 +35,10 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
 
     return (
         <>
-            <NodeToolbar isVisible={selected} position={Position.Bottom} offset={20}>
+            <NodeToolbar isVisible={selected} position={Position.Bottom} offset={20 * zoom}>
                 <div
                     className="rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.14)] backdrop-blur-lg"
-                    style={{ width: 380 }}
+                    style={{ width: 380, transform: `scale(${zoom})`, transformOrigin: 'top center' }}
                 >
                     <Typography.Text strong className="mb-3 block text-slate-900">
                         视频节点工具栏

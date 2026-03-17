@@ -6,11 +6,18 @@ import { CANVAS_NODE_TYPES, type CanvasNodeType } from '@/types/canvas'
 interface CanvasLeftToolbarProps {
     onCreateNode: (type: CanvasNodeType) => void
     onCreateNovelAgent: () => void
+    zoom: number
 }
 
-export default function CanvasLeftToolbar({ onCreateNode, onCreateNovelAgent }: CanvasLeftToolbarProps) {
+export default function CanvasLeftToolbar({ onCreateNode, onCreateNovelAgent, zoom }: CanvasLeftToolbarProps) {
     return (
-        <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white/90 p-2 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-md sm:p-3">
+        <div
+            className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white/90 p-2 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-md sm:p-3"
+            style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: 'left center',
+            }}
+        >
             <Dropdown
                 trigger={['click']}
                 menu={{

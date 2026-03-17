@@ -14,6 +14,7 @@ import type { AgentCanvasNode, AgentNodeData } from '@/types/canvas'
 function AgentNode({ id, data, selected }: NodeProps<AgentCanvasNode>) {
     const updateNodeData = useCanvasStore((state) => state.updateNodeData)
     const runNode = useCanvasStore((state) => state.runNode)
+    const zoom = useCanvasStore((state) => state.viewport.zoom)
     const [roleModalOpen, setRoleModalOpen] = useState(false)
     const [draftRoleDefinition, setDraftRoleDefinition] = useState(data.roleDefinition)
 
@@ -36,8 +37,11 @@ function AgentNode({ id, data, selected }: NodeProps<AgentCanvasNode>) {
 
     return (
         <>
-            <NodeToolbar isVisible={selected} position={Position.Bottom} offset={20}>
-                <div className="w-96 rounded-[28px] border border-violet-200 bg-white/95 p-4 shadow-[0_18px_60px_rgba(76,29,149,0.18)] backdrop-blur-lg">
+            <NodeToolbar isVisible={selected} position={Position.Bottom} offset={20 * zoom}>
+                <div
+                    className="w-96 rounded-[28px] border border-violet-200 bg-white/95 p-4 shadow-[0_18px_60px_rgba(76,29,149,0.18)] backdrop-blur-lg"
+                    style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
+                >
                     <Typography.Text strong className="mb-3 block text-violet-900">
                         智能体工具栏 · 小说改剧本
                     </Typography.Text>

@@ -19,6 +19,7 @@ import type { ImageCanvasNode, ImageNodeData } from '@/types/canvas'
 function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
     const updateNodeData = useCanvasStore((state) => state.updateNodeData)
     const runNode = useCanvasStore((state) => state.runNode)
+    const zoom = useCanvasStore((state) => state.viewport.zoom)
     const [isImageLoading, setIsImageLoading] = useState(false)
     const [hasImageLoadError, setHasImageLoadError] = useState(false)
 
@@ -49,8 +50,11 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
 
     return (
         <>
-            <NodeToolbar isVisible={selected} position={Position.Bottom} offset={20}>
-                <div className="w-96 rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.14)] backdrop-blur-lg">
+            <NodeToolbar isVisible={selected} position={Position.Bottom} offset={20 * zoom}>
+                <div
+                    className="w-150 rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.14)] backdrop-blur-lg"
+                    style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
+                >
                     <Typography.Text strong className="mb-3 block text-slate-900">
                         图片节点工具栏
                     </Typography.Text>
