@@ -13,6 +13,7 @@ export interface VideoGenerationRequest {
     n?:number; // 生成视频的数量
     watermark?: boolean; // 是否添加水印
     hd?: boolean; // 是否生成高清版本
+    resolution?: string; // 输出分辨率偏好，如 1K/2K/4K
     private?: boolean; // 是否私密
     // 支持的值有thanksgiving,comic,news,selfie,nostalgic,nostalgic
     style?: string; // 风格,

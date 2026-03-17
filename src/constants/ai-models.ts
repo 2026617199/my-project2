@@ -160,3 +160,13 @@ export const VIDEO_GENERATION_MODES = [
   { label: '文生视频', value: 'text-to-video' },
   { label: '图生视频', value: 'image-to-video' },
 ];
+
+/** 视频风格配置 */
+export const VIDEO_STYLE_OPTIONS = [
+  { label: '无特定风格', value: undefined },
+  { label: '感恩节氛围', value: 'thanksgiving' },
+  { label: '漫画风', value: 'comic' },
+  { label: '新闻纪录', value: 'news' },
+  { label: '自拍视角', value: 'selfie' },
+  { label: '怀旧胶片', value: 'nostalgic' },
+];
