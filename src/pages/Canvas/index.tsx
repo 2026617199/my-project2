@@ -12,7 +12,7 @@ import {
     type Edge,
 } from '@xyflow/react'
 import { SaveOutlined, ReloadOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
-import { Button, Layout, Select, Slider, Space, Tooltip, Typography } from 'antd'
+import { Button, Layout, Select, Slider, Space, Tooltip, Typography, message } from 'antd'
 
 import { canvasEdgeTypes } from './CustomEdges'
 import { canvasNodeTypes } from './CustomNodes'
@@ -83,7 +83,8 @@ export default function CanvasPage() {
 function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; paneClickDistance: number }) {
     const reactFlow = useReactFlow<CanvasNode, CanvasEdge>()
     const isProgrammaticViewportSyncRef = useRef(false)
-    const currentConnectionRef = useRef<{ source?: string; target?: string }>({})
+    const currentConnectionRef = useRef<{ sourceNodeId?: string; isConnected: boolean }>({ isConnected: false })
+    const suppressNextPaneClickRef = useRef(false)
     const nodes = useCanvasStore((state) => state.nodes)
     const edges = useCanvasStore((state) => state.edges)
     const contextMenu = useCanvasStore((state) => state.contextMenu)
@@ -103,6 +104,30 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
     const saveGraph = useCanvasStore((state) => state.saveGraph)
     const hydrateGraph = useCanvasStore((state) => state.hydrateGraph)
     const resetToSavedGraph = useCanvasStore((state) => state.resetToSavedGraph)
+
+    const sourceNodeType = useMemo(() => {
+        if (!contextMenu.sourceNodeId) {
+            return null
+        }
+
+        return nodes.find((node) => node.id === contextMenu.sourceNodeId)?.type ?? null
+    }, [contextMenu.sourceNodeId, nodes])
+
+    const allowedConnectionTargetTypes = useMemo(() => {
+        const creatableTypes = [CANVAS_NODE_TYPES.text, CANVAS_NODE_TYPES.image, CANVAS_NODE_TYPES.video] as const
+
+        if (!sourceNodeType) {
+            return new Set<keyof typeof CANVAS_NODE_TYPES>(creatableTypes)
+        }
+
+        if (sourceNodeType === CANVAS_NODE_TYPES.text || sourceNodeType === CANVAS_NODE_TYPES.image) {
+            return new Set<keyof typeof CANVAS_NODE_TYPES>([CANVAS_NODE_TYPES.image, CANVAS_NODE_TYPES.video])
+        }
+
+        return new Set<keyof typeof CANVAS_NODE_TYPES>(
+            creatableTypes.filter((type) => canConnectNodes(sourceNodeType, type)),
+        )
+    }, [sourceNodeType])
 
     useEffect(() => {
         hydrateGraph()
@@ -124,8 +149,8 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
 
     const handleConnect = useCallback(
         (connection: Connection) => {
-            // Record target when a valid connection is made
-            currentConnectionRef.current.target = connection.target
+            // Record valid connection result to avoid opening creation menu on connect end
+            currentConnectionRef.current.isConnected = Boolean(connection.target)
             connectNodes(connection)
         },
         [connectNodes],
@@ -133,31 +158,46 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
 
     const handleConnectStart = useCallback(
         (_: any, handle: any) => {
-            // Record the source node ID when user starts dragging from a handle
-            currentConnectionRef.current = { source: handle?.nodeId }
+            // Start a new drag session
+            currentConnectionRef.current = {
+                sourceNodeId: handle?.nodeId,
+                isConnected: false,
+            }
         },
         [],
     )
 
     const handleConnectEnd = useCallback(
-        (event: any) => {
+        (event: any, connectionState: { toNode?: { id: string } | null; toHandle?: { nodeId?: string } | null } | null) => {
             const touch = event.touches?.[0]
             const clientX = touch?.clientX ?? event.clientX
             const clientY = touch?.clientY ?? event.clientY
+            const endedOnExistingNode = Boolean(connectionState?.toNode || connectionState?.toHandle?.nodeId)
 
-            // If no valid connection was made (no target node), show menu to create new node
-            if (currentConnectionRef.current.source && !currentConnectionRef.current.target) {
-                const sourceNodeId = currentConnectionRef.current.source
+            // If user drags from a source handle and ends on blank pane (not on existing node),
+            // open node creation menu so newly created node can be auto-connected.
+            if (
+                currentConnectionRef.current.sourceNodeId &&
+                !currentConnectionRef.current.isConnected &&
+                !endedOnExistingNode
+            ) {
+                const sourceNodeId = currentConnectionRef.current.sourceNodeId
                 const sourceNode = nodes.find((node) => node.id === sourceNodeId)
 
                 if (sourceNode) {
-                    // Show menu for creating text or video node
+                    // Prevent the immediate pane click from closing the just-opened menu.
+                    suppressNextPaneClickRef.current = true
+
                     openContextMenu(clientX, clientY, sourceNodeId, true)
+
+                    window.setTimeout(() => {
+                        suppressNextPaneClickRef.current = false
+                    }, 0)
                 }
             }
 
             // Reset connection state
-            currentConnectionRef.current = {}
+            currentConnectionRef.current = { isConnected: false }
         },
         [nodes, openContextMenu],
     )
@@ -175,15 +215,21 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 return false
             }
 
-            return !(
+            const relationType =
                 sourceNode.type === CANVAS_NODE_TYPES.image &&
-                targetNode.type === CANVAS_NODE_TYPES.video &&
-                edges.some(
-                    (edge) =>
-                        edge.target === targetNode.id &&
-                        edge.data?.relationType === 'reference-image' &&
-                        edge.id !== ('id' in connection ? connection.id : undefined),
-                )
+                    (targetNode.type === CANVAS_NODE_TYPES.image || targetNode.type === CANVAS_NODE_TYPES.video)
+                    ? 'reference-image'
+                    : null
+
+            if (relationType !== 'reference-image') {
+                return true
+            }
+
+            return !edges.some(
+                (edge) =>
+                    edge.target === targetNode.id &&
+                    edge.data?.relationType === 'reference-image' &&
+                    edge.id !== ('id' in connection ? connection.id : undefined),
             )
         },
         [edges, nodes],
@@ -200,6 +246,11 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
 
     const handleCreateNode = useCallback(
         (type: keyof typeof CANVAS_NODE_TYPES) => {
+            if (contextMenu.isConnectionMenu && !allowedConnectionTargetTypes.has(type)) {
+                message.warning('该来源节点不支持创建此类型的后续节点')
+                return
+            }
+
             const position = reactFlow.screenToFlowPosition({ x: contextMenu.clientX, y: contextMenu.clientY })
             if (contextMenu.isConnectionMenu && contextMenu.sourceNodeId) {
                 createNodeAndConnect(contextMenu.sourceNodeId, type, position)
@@ -207,7 +258,16 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 createNode(type, position)
             }
         },
-        [contextMenu.clientX, contextMenu.clientY, contextMenu.isConnectionMenu, contextMenu.sourceNodeId, createNode, createNodeAndConnect, reactFlow],
+        [
+            allowedConnectionTargetTypes,
+            contextMenu.clientX,
+            contextMenu.clientY,
+            contextMenu.isConnectionMenu,
+            contextMenu.sourceNodeId,
+            createNode,
+            createNodeAndConnect,
+            reactFlow,
+        ],
     )
 
     const handleSave = useCallback(() => {
@@ -223,12 +283,18 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
 
     const menuItems = useMemo(() => {
         if (contextMenu.isConnectionMenu) {
-            return [
+            const candidateItems = [
                 {
                     key: CANVAS_NODE_TYPES.text,
                     icon: <PlusOutlined />,
                     label: '创建文本节点',
                     onClick: () => handleCreateNode(CANVAS_NODE_TYPES.text),
+                },
+                {
+                    key: CANVAS_NODE_TYPES.image,
+                    icon: <PlusOutlined />,
+                    label: '创建图片节点',
+                    onClick: () => handleCreateNode(CANVAS_NODE_TYPES.image),
                 },
                 {
                     key: CANVAS_NODE_TYPES.video,
@@ -237,6 +303,12 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                     onClick: () => handleCreateNode(CANVAS_NODE_TYPES.video),
                 },
             ]
+
+            return candidateItems.map((item) => ({
+                ...item,
+                disabled: !allowedConnectionTargetTypes.has(item.key),
+                disabledReason: '仅允许创建图片或视频作为后续节点',
+            }))
         }
 
         return [
@@ -266,15 +338,30 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 onClick: () => deleteSelectedElements(),
             },
         ]
-    }, [contextMenu.isConnectionMenu, deleteSelectedElements, handleCreateNode])
+    }, [allowedConnectionTargetTypes, contextMenu.isConnectionMenu, deleteSelectedElements, handleCreateNode])
+
+    useEffect(() => {
+        if (!contextMenu.visible) {
+            return
+        }
+
+        const handlePointerDown = (event: PointerEvent) => {
+            const target = event.target as HTMLElement | null
+            if (target?.closest('[data-context-menu-root="true"]')) {
+                return
+            }
+
+            closeContextMenu()
+        }
+
+        document.addEventListener('pointerdown', handlePointerDown, true)
+        return () => {
+            document.removeEventListener('pointerdown', handlePointerDown, true)
+        }
+    }, [closeContextMenu, contextMenu.visible])
 
     return (
-        <div className="relative h-[calc(100vh-65px)] w-full" onClick={() => {
-            // Read live store state to avoid stale closure bug
-            if (!useCanvasStore.getState().contextMenu.isConnectionMenu) {
-                closeContextMenu()
-            }
-        }}>
+        <div className="relative h-[calc(100vh-65px)] w-full">
             <div className="absolute left-3 top-1/2 z-20 -translate-y-1/2 sm:left-4">
                 <CanvasLeftToolbar
                     onCreateNode={handleCreateFromToolbar}
@@ -314,10 +401,11 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 onConnectEnd={handleConnectEnd}
                 onReconnect={reconnectExistingEdge}
                 onPaneClick={() => {
-                    // Read live store state to avoid stale closure bug
-                    if (!useCanvasStore.getState().contextMenu.isConnectionMenu) {
-                        closeContextMenu()
+                    if (suppressNextPaneClickRef.current) {
+                        return
                     }
+
+                    closeContextMenu()
                 }}
                 onPaneContextMenu={handlePaneContextMenu}
                 onSelectionChange={({ nodes: selectedNodes, edges: selectedEdges }) => {
@@ -344,16 +432,23 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
 
             {contextMenu.visible ? (
                 <div
+                    data-context-menu-root="true"
                     className={`absolute z-30 min-w-48 rounded-2xl border bg-white/95 p-2 shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-md ${contextMenu.isConnectionMenu
-                            ? 'border-sky-300 ring-2 ring-sky-200'
-                            : 'border-slate-200'
+                        ? 'border-sky-300 ring-2 ring-sky-200'
+                        : 'border-slate-200'
                         }`}
                     style={{ left: contextMenu.clientX + 4, top: contextMenu.clientY + 4 }}
                     onClick={(event) => event.stopPropagation()}
                 >
                     {contextMenu.isConnectionMenu && (
                         <div className="mb-2 px-3 py-1 text-xs font-medium text-sky-600">
-                            选择要创建的节点
+                            <div className="flex items-center gap-2">
+                                <span className="inline-block h-2 w-2 rounded-full bg-sky-500 animate-pulse" />
+                                选择要创建的节点
+                            </div>
+                            <div className="mt-1 text-[11px] font-normal text-sky-500/80">
+                                创建后将自动与源节点连线
+                            </div>
                         </div>
                     )}
                     {menuItems.map((item) => {
@@ -362,18 +457,37 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                         }
 
                         return (
-                            <button
-                                key={item.key}
-                                type="button"
-                                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
-                                onClick={() => {
-                                    item.onClick?.()
-                                    closeContextMenu()
-                                }}
-                            >
-                                <span>{item.icon}</span>
-                                <span>{item.label}</span>
-                            </button>
+                            <div key={item.key}>
+                                <button
+                                    type="button"
+                                    disabled={'disabled' in item ? item.disabled : false}
+                                    className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition ${'disabled' in item && item.disabled
+                                        ? 'cursor-not-allowed bg-slate-50 text-slate-400'
+                                        : 'text-slate-700 hover:bg-slate-100 active:scale-[0.99]'
+                                        }`}
+                                    onClick={() => {
+                                        if ('disabled' in item && item.disabled) {
+                                            return
+                                        }
+
+                                        item.onClick?.()
+                                        closeContextMenu()
+                                    }}
+                                >
+                                    <span className="flex items-center gap-2">
+                                        <span>{item.icon}</span>
+                                        <span>{item.label}</span>
+                                    </span>
+                                    {'disabled' in item && item.disabled ? (
+                                        <span className="rounded-full border border-slate-300 px-2 py-0.5 text-[11px] text-slate-400">
+                                            不可用
+                                        </span>
+                                    ) : null}
+                                </button>
+                                {'disabled' in item && item.disabled && 'disabledReason' in item ? (
+                                    <div className="px-3 pb-1 text-[11px] text-slate-400">{item.disabledReason}</div>
+                                ) : null}
+                            </div>
                         )
                     })}
                 </div>

@@ -142,7 +142,10 @@ export function getConnectionRelation(
     return 'prompt'
   }
 
-  if (sourceType === CANVAS_NODE_TYPES.image && targetType === CANVAS_NODE_TYPES.video) {
+  if (
+    sourceType === CANVAS_NODE_TYPES.image &&
+    (targetType === CANVAS_NODE_TYPES.image || targetType === CANVAS_NODE_TYPES.video)
+  ) {
     return 'reference-image'
   }
 
