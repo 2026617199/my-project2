@@ -46,12 +46,12 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
                             placeholder="补充这个图片节点自己的提示词"
                             autoSize={{ minRows: 3, maxRows: 6 }}
                         />
-                        <div className="grid grid-cols-2 gap-3">
-                            <CloudSelect value={data.model} options={modelOptions} onChange={(value) => handlePatch({ model: String(value) })} />
-                            <CloudSelect value={data.size} options={IMAGE_SIZES} onChange={(value) => handlePatch({ size: String(value) })} />
-                            <CloudSelect value={data.resolution} options={IMAGE_RESOLUTIONS} onChange={(value) => handlePatch({ resolution: String(value) })} />
-                            <CloudSelect value={data.orientation} options={IMAGE_ORIENTATIONS} onChange={(value) => handlePatch({ orientation: String(value) })} />
-                            <CloudSelect value={data.count} options={IMAGE_COUNTS} onChange={(value) => handlePatch({ count: Number(value) })} />
+                        <div className="grid grid-cols-2 gap-3 nodrag nopan nowheel">
+                            <CloudSelect className="nodrag nopan nowheel" value={data.model} options={modelOptions} onChange={(value) => handlePatch({ model: String(value) })} />
+                            <CloudSelect className="nodrag nopan nowheel" value={data.size} options={IMAGE_SIZES} onChange={(value) => handlePatch({ size: String(value) })} />
+                            <CloudSelect className="nodrag nopan nowheel" value={data.resolution} options={IMAGE_RESOLUTIONS} onChange={(value) => handlePatch({ resolution: String(value) })} />
+                            <CloudSelect className="nodrag nopan nowheel" value={data.orientation} options={IMAGE_ORIENTATIONS} onChange={(value) => handlePatch({ orientation: String(value) })} />
+                            <CloudSelect className="nodrag nopan nowheel" value={data.count} options={IMAGE_COUNTS} onChange={(value) => handlePatch({ count: Number(value) })} />
                         </div>
                         <PreviewSection title="最终提示词预览">
                             <Typography.Paragraph className="mb-0! whitespace-pre-wrap text-xs text-slate-600">

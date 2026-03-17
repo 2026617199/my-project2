@@ -49,11 +49,11 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
                             placeholder="补充视频节点自己的提示词，例如镜头运动和节奏描述"
                             autoSize={{ minRows: 3, maxRows: 6 }}
                         />
-                        <div className="grid grid-cols-2 gap-3">
-                            <CloudSelect value={data.model} options={modelOptions} onChange={(value) => handlePatch({ model: String(value) })} />
-                            <CloudSelect value={data.aspectRatio} options={VIDEO_ASPECT_RATIOS} onChange={(value) => handlePatch({ aspectRatio: String(value) })} />
-                            <CloudSelect value={data.resolution} options={IMAGE_RESOLUTIONS} onChange={(value) => handlePatch({ resolution: String(value) })} />
-                            <CloudSelect value={data.style} options={VIDEO_STYLE_OPTIONS} onChange={(value) => handlePatch({ style: value ? String(value) : undefined })} />
+                        <div className="grid grid-cols-2 gap-3 nodrag nopan nowheel">
+                            <CloudSelect className="nodrag nopan nowheel" value={data.model} options={modelOptions} onChange={(value) => handlePatch({ model: String(value) })} />
+                            <CloudSelect className="nodrag nopan nowheel" value={data.aspectRatio} options={VIDEO_ASPECT_RATIOS} onChange={(value) => handlePatch({ aspectRatio: String(value) })} />
+                            <CloudSelect className="nodrag nopan nowheel" value={data.resolution} options={IMAGE_RESOLUTIONS} onChange={(value) => handlePatch({ resolution: String(value) })} />
+                            <CloudSelect className="nodrag nopan nowheel" value={data.style} options={VIDEO_STYLE_OPTIONS} onChange={(value) => handlePatch({ style: value ? String(value) : undefined })} />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <label className="flex flex-col gap-1 text-xs text-slate-500">
