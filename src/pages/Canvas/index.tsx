@@ -16,7 +16,6 @@ import { Button, Layout, Select, Slider, Space, Tooltip, Typography } from 'antd
 
 import { canvasEdgeTypes } from './CustomEdges'
 import { canvasNodeTypes } from './CustomNodes'
-import ReactFlowDevTools from './DevTools'
 
 import { useCanvasStore } from '@/store/canvas'
 import { CANVAS_NODE_TYPES, canConnectNodes, type CanvasEdge, type CanvasNode } from '@/types/canvas'
@@ -235,7 +234,7 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 <MiniMap pannable zoomable className="rounded-2xl! border! border-slate-200! bg-white/90!" />
                 <Controls className="rounded-2xl! border! border-slate-200! bg-white/90!" />
                 <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="rgba(100,116,139,0.35)" />
-                <ReactFlowDevTools position="top-left" />
+                {/* <ReactFlowDevTools position="top-left" /> */}
             </ReactFlow>
 
             {contextMenu.visible ? (

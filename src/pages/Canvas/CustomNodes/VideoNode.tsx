@@ -64,7 +64,7 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
                                     step={VIDEO_DURATION_CONFIG.step}
                                     value={data.duration}
                                     onChange={(value) => handlePatch({ duration: Number(value ?? 0) })}
-                                    className="w-full"
+                                    className="w-full nodrag nopan nowheel"
                                 />
                             </label>
                             <div className="grid grid-cols-1 gap-2 rounded-2xl bg-slate-50 p-3 text-xs text-slate-600">
