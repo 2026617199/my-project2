@@ -83,6 +83,7 @@ export default function CanvasPage() {
 function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; paneClickDistance: number }) {
     const reactFlow = useReactFlow<CanvasNode, CanvasEdge>()
     const isProgrammaticViewportSyncRef = useRef(false)
+    const currentConnectionRef = useRef<{ source?: string; target?: string }>({})
     const nodes = useCanvasStore((state) => state.nodes)
     const edges = useCanvasStore((state) => state.edges)
     const contextMenu = useCanvasStore((state) => state.contextMenu)
@@ -93,6 +94,7 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
     const reconnectExistingEdge = useCanvasStore((state) => state.reconnectEdge)
     const createNode = useCanvasStore((state) => state.createNode)
     const createNodeAtRandom = useCanvasStore((state) => state.createNodeAtRandom)
+    const createNodeAndConnect = useCanvasStore((state) => state.createNodeAndConnect)
     const openContextMenu = useCanvasStore((state) => state.openContextMenu)
     const closeContextMenu = useCanvasStore((state) => state.closeContextMenu)
     const setSelection = useCanvasStore((state) => state.setSelection)
@@ -122,9 +124,42 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
 
     const handleConnect = useCallback(
         (connection: Connection) => {
+            // Record target when a valid connection is made
+            currentConnectionRef.current.target = connection.target
             connectNodes(connection)
         },
         [connectNodes],
+    )
+
+    const handleConnectStart = useCallback(
+        (_: any, handle: any) => {
+            // Record the source node ID when user starts dragging from a handle
+            currentConnectionRef.current = { source: handle?.nodeId }
+        },
+        [],
+    )
+
+    const handleConnectEnd = useCallback(
+        (event: any) => {
+            const touch = event.touches?.[0]
+            const clientX = touch?.clientX ?? event.clientX
+            const clientY = touch?.clientY ?? event.clientY
+
+            // If no valid connection was made (no target node), show menu to create new node
+            if (currentConnectionRef.current.source && !currentConnectionRef.current.target) {
+                const sourceNodeId = currentConnectionRef.current.source
+                const sourceNode = nodes.find((node) => node.id === sourceNodeId)
+
+                if (sourceNode) {
+                    // Show menu for creating text or video node
+                    openContextMenu(clientX, clientY, sourceNodeId, true)
+                }
+            }
+
+            // Reset connection state
+            currentConnectionRef.current = {}
+        },
+        [nodes, openContextMenu],
     )
 
     const isValidConnection = useCallback(
@@ -166,9 +201,13 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
     const handleCreateNode = useCallback(
         (type: keyof typeof CANVAS_NODE_TYPES) => {
             const position = reactFlow.screenToFlowPosition({ x: contextMenu.clientX, y: contextMenu.clientY })
-            createNode(type, position)
+            if (contextMenu.isConnectionMenu && contextMenu.sourceNodeId) {
+                createNodeAndConnect(contextMenu.sourceNodeId, type, position)
+            } else {
+                createNode(type, position)
+            }
         },
-        [contextMenu.clientX, contextMenu.clientY, createNode, reactFlow],
+        [contextMenu.clientX, contextMenu.clientY, contextMenu.isConnectionMenu, contextMenu.sourceNodeId, createNode, createNodeAndConnect, reactFlow],
     )
 
     const handleSave = useCallback(() => {
@@ -182,8 +221,25 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
         [createNodeAtRandom],
     )
 
-    const menuItems = useMemo(
-        () => [
+    const menuItems = useMemo(() => {
+        if (contextMenu.isConnectionMenu) {
+            return [
+                {
+                    key: CANVAS_NODE_TYPES.text,
+                    icon: <PlusOutlined />,
+                    label: '创建文本节点',
+                    onClick: () => handleCreateNode(CANVAS_NODE_TYPES.text),
+                },
+                {
+                    key: CANVAS_NODE_TYPES.video,
+                    icon: <PlusOutlined />,
+                    label: '创建视频节点',
+                    onClick: () => handleCreateNode(CANVAS_NODE_TYPES.video),
+                },
+            ]
+        }
+
+        return [
             {
                 key: CANVAS_NODE_TYPES.text,
                 icon: <PlusOutlined />,
@@ -209,12 +265,16 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 label: '删除当前选中元素',
                 onClick: () => deleteSelectedElements(),
             },
-        ],
-        [deleteSelectedElements, handleCreateNode],
-    )
+        ]
+    }, [contextMenu.isConnectionMenu, deleteSelectedElements, handleCreateNode])
 
     return (
-        <div className="relative h-[calc(100vh-65px)] w-full" onClick={closeContextMenu}>
+        <div className="relative h-[calc(100vh-65px)] w-full" onClick={() => {
+            // Read live store state to avoid stale closure bug
+            if (!useCanvasStore.getState().contextMenu.isConnectionMenu) {
+                closeContextMenu()
+            }
+        }}>
             <div className="absolute left-3 top-1/2 z-20 -translate-y-1/2 sm:left-4">
                 <CanvasLeftToolbar
                     onCreateNode={handleCreateFromToolbar}
@@ -250,8 +310,15 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 onNodesChange={applyNodeChanges}
                 onEdgesChange={applyEdgeChanges}
                 onConnect={handleConnect}
+                onConnectStart={handleConnectStart}
+                onConnectEnd={handleConnectEnd}
                 onReconnect={reconnectExistingEdge}
-                onPaneClick={closeContextMenu}
+                onPaneClick={() => {
+                    // Read live store state to avoid stale closure bug
+                    if (!useCanvasStore.getState().contextMenu.isConnectionMenu) {
+                        closeContextMenu()
+                    }
+                }}
                 onPaneContextMenu={handlePaneContextMenu}
                 onSelectionChange={({ nodes: selectedNodes, edges: selectedEdges }) => {
                     setSelection(selectedNodes[0]?.id ?? null, selectedEdges[0]?.id ?? null)
@@ -277,10 +344,18 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
 
             {contextMenu.visible ? (
                 <div
-                    className="absolute z-30 min-w-48 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-md"
-                    style={{ left: contextMenu.clientX, top: contextMenu.clientY }}
+                    className={`absolute z-30 min-w-48 rounded-2xl border bg-white/95 p-2 shadow-[0_18px_45px_rgba(15,23,42,0.14)] backdrop-blur-md ${contextMenu.isConnectionMenu
+                            ? 'border-sky-300 ring-2 ring-sky-200'
+                            : 'border-slate-200'
+                        }`}
+                    style={{ left: contextMenu.clientX + 4, top: contextMenu.clientY + 4 }}
                     onClick={(event) => event.stopPropagation()}
                 >
+                    {contextMenu.isConnectionMenu && (
+                        <div className="mb-2 px-3 py-1 text-xs font-medium text-sky-600">
+                            选择要创建的节点
+                        </div>
+                    )}
                     {menuItems.map((item) => {
                         if ('type' in item && item.type === 'divider') {
                             return <div key="divider" className="my-2 h-px bg-slate-200" />

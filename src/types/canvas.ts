@@ -107,6 +107,8 @@ export interface CanvasContextMenuState {
   visible: boolean
   clientX: number
   clientY: number
+  sourceNodeId?: string
+  isConnectionMenu?: boolean
 }
 
 export interface CanvasPersistedState {

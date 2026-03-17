@@ -47,6 +47,8 @@ const EMPTY_CONTEXT_MENU: CanvasContextMenuState = {
   visible: false,
   clientX: 0,
   clientY: 0,
+  sourceNodeId: undefined,
+  isConnectionMenu: false,
 }
 
 const DEFAULT_VIEWPORT: CanvasViewport = {
@@ -76,8 +78,9 @@ interface CanvasStoreState {
   updateNodeData: (nodeId: string, patch: CanvasNodePatch) => void
   setSelection: (nodeId: string | null, edgeId: string | null) => void
   deleteSelectedElements: () => void
-  openContextMenu: (clientX: number, clientY: number) => void
+  openContextMenu: (clientX: number, clientY: number, sourceNodeId?: string, isConnectionMenu?: boolean) => void
   closeContextMenu: () => void
+  createNodeAndConnect: (sourceNodeId: string, targetNodeType: CanvasNodeType, position: XYPosition) => void
   setViewport: (viewport: CanvasViewport) => void
   saveGraph: (viewport?: CanvasViewport) => void
   hydrateGraph: () => void
@@ -714,18 +717,87 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     })
   },
 
-  openContextMenu: (clientX, clientY) => {
+  openContextMenu: (clientX, clientY, sourceNodeId, isConnectionMenu) => {
     set({
       contextMenu: {
         visible: true,
         clientX,
         clientY,
+        sourceNodeId,
+        isConnectionMenu: isConnectionMenu ?? false,
       },
     })
   },
 
   closeContextMenu: () => {
     set({ contextMenu: EMPTY_CONTEXT_MENU })
+  },
+
+  createNodeAndConnect: (sourceNodeId, targetNodeType, position) => {
+    const sourceNode = get().nodes.find((node) => node.id === sourceNodeId)
+    if (!sourceNode) {
+      return
+    }
+
+    // Create the new node
+    const newNode = createNodeFactory(targetNodeType, position)
+
+    // Validate connection
+    if (!canConnectNodes(sourceNode.type, targetNodeType)) {
+      return
+    }
+
+    const relationType = getConnectionRelation(sourceNode.type, targetNodeType)
+    if (!relationType) {
+      return
+    }
+
+    // For reference-image connections, check if target already has one
+    const alreadyHasReferenceImage =
+      relationType === 'reference-image' &&
+      get().edges.some(
+        (edge) =>
+          edge.target === newNode.id &&
+          edge.data?.relationType === 'reference-image',
+      )
+
+    if (alreadyHasReferenceImage) {
+      return
+    }
+
+    // Create the edge connecting source to new node
+    const newEdge: CanvasEdge = {
+      id: buildEdgeId({
+        source: sourceNodeId,
+        target: newNode.id,
+        sourceHandle: null,
+        targetHandle: null,
+      }),
+      type: 'semantic',
+      source: sourceNodeId,
+      target: newNode.id,
+      sourceHandle: null,
+      targetHandle: null,
+      data: {
+        relationType,
+        createdAt: Date.now(),
+      },
+      animated: relationType === 'reference-image',
+      deletable: true,
+      selectable: true,
+      reconnectable: true,
+    }
+
+    const nextNodes = withRecomputedNodes([...get().nodes, newNode], [...get().edges, newEdge])
+    const nextEdges = [...get().edges, newEdge]
+
+    set({
+      nodes: nextNodes,
+      edges: nextEdges,
+      selectedNodeId: newNode.id,
+      selectedEdgeId: null,
+      contextMenu: EMPTY_CONTEXT_MENU,
+    })
   },
 
   setViewport: (viewport) => {
