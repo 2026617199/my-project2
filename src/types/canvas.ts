@@ -39,6 +39,8 @@ interface BaseCanvasNodeData extends Record<string, unknown> {
 
 export interface TextNodeData extends BaseCanvasNodeData {
   content: string
+  width?: number
+  height?: number
 }
 
 interface BaseMediaNodeData extends BaseCanvasNodeData {

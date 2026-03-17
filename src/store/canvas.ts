@@ -127,6 +127,8 @@ function createNodeFactory(type: CanvasNodeType, position: XYPosition): CanvasNo
         ...baseData,
         title: '文本节点',
         content: '',
+        width: 320,
+        height: 160,
       },
     }
   }

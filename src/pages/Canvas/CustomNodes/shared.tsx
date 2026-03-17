@@ -16,22 +16,25 @@ export function NodeShell({
     status,
     selected,
     subtitle,
+    width,
     children,
 }: PropsWithChildren<{
     title: string
     status: NodeExecutionStatus
     selected?: boolean
     subtitle?: ReactNode
+    width?: number
 }>) {
     const statusMeta = STATUS_META[status]
     const containerClassName = [
-        'min-w-[280px] max-w-[320px] rounded-3xl border bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-md transition-all',
+        width ? 'min-w-[280px]' : 'min-w-[280px] max-w-[320px]',
+        'rounded-3xl border bg-white/95 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-md transition-all',
         selected ? 'border-sky-400 ring-4 ring-sky-100' : 'border-slate-200',
     ].join(' ')
     const statusClassName = ['rounded-full border px-2 py-0.5 text-xs font-medium', statusMeta.className].join(' ')
 
     return (
-        <div className={containerClassName}>
+        <div className={containerClassName} style={width ? { width } : undefined}>
             <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                     <Typography.Text strong className="block text-[15px] text-slate-900">
