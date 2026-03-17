@@ -509,6 +509,8 @@ async function pollVideoGeneration(taskId: string, nodeId: string) {
   while (true) {
     await wait(POLL_INTERVAL)
     const response = (await getVideoTaskStatus(taskId)) as VideoTaskStatusResponse
+    const result = response.result
+    const hasResult = result !== null && result !== undefined
     const state = useCanvasStore.getState()
     const videoNode = state.nodes.find((node) => node.id === nodeId)
 
@@ -521,9 +523,9 @@ async function pollVideoGeneration(taskId: string, nodeId: string) {
         return node
       }
 
-      if (response.status === 'completed') {
+      if (hasResult) {
         const outputVideos: GeneratedVideoResult[] =
-          response.result?.data.map((item) => ({
+          result.data.map((item) => ({
             url: item.url,
             format: item.format,
           })) ?? []
@@ -546,14 +548,14 @@ async function pollVideoGeneration(taskId: string, nodeId: string) {
 
       return updateStatusPatch(node, {
         status: 'running',
-        progress: response.progress,
+        progress: response.progress ?? node.data.progress,
       })
     })
 
     const recomputedNodes = withRecomputedNodes(nextNodes, state.edges)
     useCanvasStore.setState({ nodes: recomputedNodes })
 
-    if (response.status === 'completed' || response.status === 'failed') {
+    if (hasResult || response.status === 'failed') {
       return
     }
   }
