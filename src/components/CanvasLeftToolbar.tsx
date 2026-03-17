@@ -1,5 +1,5 @@
 import { AppstoreAddOutlined, FileTextOutlined, PictureOutlined, RobotOutlined, VideoCameraOutlined } from '@ant-design/icons'
-import { Button, Dropdown, Tooltip } from 'antd'
+import { Button, Dropdown } from 'antd'
 
 import { CANVAS_NODE_TYPES, type CanvasNodeType } from '@/types/canvas'
 
@@ -13,7 +13,7 @@ export default function CanvasLeftToolbar({ onCreateNode, onCreateNovelAgent }: 
         <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white/90 p-2 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-md sm:p-3">
             <Dropdown
                 trigger={['click']}
-                placement="topRight"
+                placement="rightTop"
                 menu={{
                     items: [
                         {
@@ -37,19 +37,17 @@ export default function CanvasLeftToolbar({ onCreateNode, onCreateNovelAgent }: 
                     ],
                 }}
             >
-                <Tooltip title="节点创建工具">
-                    <Button
-                        icon={<AppstoreAddOutlined />}
-                        className="flex h-11 w-11 items-center justify-center rounded-2xl border-slate-200 text-slate-700 hover:border-sky-300 hover:text-sky-600 sm:w-auto sm:px-3"
-                    >
-                        <span className="hidden sm:inline">节点创建</span>
-                    </Button>
-                </Tooltip>
+                <Button
+                    icon={<AppstoreAddOutlined />}
+                    className="flex h-11 w-11 items-center justify-center rounded-2xl border-slate-200 text-slate-700 hover:border-sky-300 hover:text-sky-600 sm:w-auto sm:px-3"
+                >
+                    <span className="hidden sm:inline">节点创建</span>
+                </Button>
             </Dropdown>
 
             <Dropdown
                 trigger={['click']}
-                placement="topRight"
+                placement="rightTop"
                 menu={{
                     items: [
                         {
@@ -60,14 +58,12 @@ export default function CanvasLeftToolbar({ onCreateNode, onCreateNovelAgent }: 
                     ],
                 }}
             >
-                <Tooltip title="智能体工具">
-                    <Button
-                        icon={<RobotOutlined />}
-                        className="flex h-11 w-11 items-center justify-center rounded-2xl border-slate-200 text-violet-700 hover:border-violet-300 hover:text-violet-600 sm:w-auto sm:px-3"
-                    >
-                        <span className="hidden sm:inline">智能体</span>
-                    </Button>
-                </Tooltip>
+                <Button
+                    icon={<RobotOutlined />}
+                    className="flex h-11 w-11 items-center justify-center rounded-2xl border-slate-200 text-violet-700 hover:border-violet-300 hover:text-violet-600 sm:w-auto sm:px-3"
+                >
+                    <span className="hidden sm:inline">智能体</span>
+                </Button>
             </Dropdown>
         </div>
     )
