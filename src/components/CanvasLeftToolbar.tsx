@@ -13,7 +13,6 @@ export default function CanvasLeftToolbar({ onCreateNode, onCreateNovelAgent }: 
         <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white/90 p-2 shadow-[0_18px_45px_rgba(15,23,42,0.12)] backdrop-blur-md sm:p-3">
             <Dropdown
                 trigger={['click']}
-                placement="rightTop"
                 menu={{
                     items: [
                         {
@@ -47,7 +46,6 @@ export default function CanvasLeftToolbar({ onCreateNode, onCreateNovelAgent }: 
 
             <Dropdown
                 trigger={['click']}
-                placement="rightTop"
                 menu={{
                     items: [
                         {
