@@ -56,7 +56,7 @@ function AgentNode({ id, data, selected }: NodeProps<AgentCanvasNode>) {
                         />
                         <PreviewSection title="角色定义">
                             <Typography.Paragraph className="mb-0! whitespace-pre-wrap text-xs text-slate-600">
-                                {data.roleDefinition || '未设置角色定义'}
+                                {data.roleDefinition.trim() ? '已设置角色定义' : '未设置角色定义'}
                             </Typography.Paragraph>
                         </PreviewSection>
                         <PreviewSection title="待处理内容">

@@ -30,7 +30,7 @@ function TextNode({ id, data, selected }: NodeProps<TextCanvasNode>) {
                     onChange={(event) => handleChange(event.target.value)}
                     placeholder="输入这段文本，例如镜头语言、人物描述、光影风格……"
                     autoSize={{ minRows: 4, maxRows: 8 }}
-                    className="rounded-2xl"
+                    className="rounded-2xl nodrag nopan nowheel"
                 />
                 <Typography.Text className="block text-xs text-slate-500">
                     当前字符数：{data.content.trim().length}
