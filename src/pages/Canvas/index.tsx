@@ -163,7 +163,7 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                         'radial-gradient(circle at top, rgba(191,219,254,0.42), transparent 26%), linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(240,249,255,0.96) 100%)',
                 }}
             >
-                <MiniMap pannable zoomable className="rounded-2xl! border! border-slate-200! bg-white/90!" />
+                {/* <MiniMap pannable zoomable className="rounded-2xl! border! border-slate-200! bg-white/90!" /> */}
                 <Controls className="rounded-2xl! border! border-slate-200! bg-white/90!" />
                 <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="rgba(100,116,139,0.35)" />
                 {/* <ReactFlowDevTools position="top-left" /> */}

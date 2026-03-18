@@ -1,6 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Handle, NodeToolbar, Position, type NodeProps } from '@xyflow/react'
-import { Input, Typography, message } from 'antd'
+import { EditorContent, useEditor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { Typography, message } from 'antd'
 import { Controlled as ControlledZoom } from 'react-medium-image-zoom'
 import 'react-medium-image-zoom/dist/styles.css'
 import {
@@ -51,11 +53,24 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
     const [isImageZoomed, setIsImageZoomed] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const toolbarActionTimerRef = useRef<number | null>(null)
+    const promptCacheRef = useRef(data.prompt ?? '')
 
     const modelOptions = useMemo(
         () => IMAGE_MODELS.map((item) => ({ label: item.name, value: item.model })),
         [],
     )
+
+    const editor = useEditor({
+        extensions: [StarterKit],
+        content: data.prompt || '',
+        immediatelyRender: true,
+        editorProps: {
+            attributes: {
+                class:
+                    'nodrag nopan nowheel min-h-[200px] max-h-[200px] overflow-y-auto rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm leading-6 text-slate-700 focus:outline-none',
+            },
+        },
+    })
 
     const handlePatch = useCallback(
         (patch: Partial<ImageNodeData>) => {
@@ -63,6 +78,19 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
         },
         [id, updateNodeData],
     )
+
+    const commitPromptToStore = useCallback(() => {
+        if (!editor) {
+            return
+        }
+
+        const nextPrompt = editor.getText({ blockSeparator: '\n' }).trim()
+        promptCacheRef.current = nextPrompt
+
+        if (nextPrompt !== data.prompt) {
+            handlePatch({ prompt: nextPrompt })
+        }
+    }, [data.prompt, editor, handlePatch])
 
     // 验证文件格式和大小
     const validateFile = (file: File): { valid: boolean; error?: string } => {
@@ -219,6 +247,11 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
         [showActionFeedback, toggleImageZoom],
     )
 
+    const handleRunImage = useCallback(() => {
+        commitPromptToStore()
+        void runNode(id)
+    }, [commitPromptToStore, id, runNode])
+
     useEffect(() => {
         if (!previewImageUrl) {
             setIsImageLoading(false)
@@ -229,6 +262,22 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
         setIsImageLoading(true)
         setHasImageLoadError(false)
     }, [previewImageUrl])
+
+    useEffect(() => {
+        if (!editor) {
+            return
+        }
+
+        const nextPrompt = data.prompt || ''
+        if (nextPrompt === promptCacheRef.current) {
+            return
+        }
+
+        promptCacheRef.current = nextPrompt
+        if (!editor.isFocused) {
+            editor.commands.setContent(nextPrompt)
+        }
+    }, [data.prompt, editor])
 
     useEffect(() => {
         return () => {
@@ -272,36 +321,117 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
             </NodeToolbar>
             <NodeToolbar isVisible={selected} position={Position.Bottom} offset={20 * zoom}>
                 <div
-                    className="w-150 rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.14)] backdrop-blur-lg"
-                    style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
+                    className="rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.14)] backdrop-blur-lg"
+                    style={{ width: 640, transform: `scale(${zoom})`, transformOrigin: 'top center' }}
                 >
-                    <Typography.Text strong className="mb-3 block text-slate-900">
-                        图片节点工具栏
-                    </Typography.Text>
-                    <div className="space-y-3">
-                        <Input.TextArea
-                            value={data.prompt}
-                            onChange={(event) => handlePatch({ prompt: event.target.value })}
-                            placeholder="补充这个图片节点自己的提示词"
-                            autoSize={{ minRows: 3, maxRows: 6 }}
-                        />
-                        <div className="grid grid-cols-3 gap-3 nodrag nopan nowheel">
-                            <CloudSelect className="nodrag nopan nowheel" value={data.model} options={modelOptions} onChange={(value) => handlePatch({ model: String(value) })} />
-                            <CloudSelect className="nodrag nopan nowheel" value={data.size} options={IMAGE_SIZES} onChange={(value) => handlePatch({ size: String(value) })} />
-                            <CloudSelect className="nodrag nopan nowheel" value={data.resolution} options={IMAGE_RESOLUTIONS} onChange={(value) => handlePatch({ resolution: String(value) })} />
-                            <CloudSelect className="nodrag nopan nowheel" value={data.orientation} options={IMAGE_ORIENTATIONS} onChange={(value) => handlePatch({ orientation: String(value) })} />
-                            <CloudSelect className="nodrag nopan nowheel" value={data.count} options={IMAGE_COUNTS} onChange={(value) => handlePatch({ count: Number(value) })} />
-                        </div>
-                        <PreviewSection title="最终提示词预览">
-                            <Typography.Paragraph className="mb-0! whitespace-pre-wrap text-xs text-slate-600">
-                                {data.finalPrompt || '等待输入提示词或连接文本节点'}
-                            </Typography.Paragraph>
-                        </PreviewSection>
-                        <div className="flex justify-end">
-                            <CloudButton loading={data.status === 'queued' || data.status === 'running'} onClick={() => void runNode(id)}>
-                                生成图片
-                            </CloudButton>
-                        </div>
+                    {/* 图片节点工具栏 */}
+                    <div className="space-y-4">
+                        <section className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+                            <div className="flex items-center justify-between">
+                                <Typography.Text className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                    编辑区（prompt）
+                                </Typography.Text>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        className="nodrag nopan nowheel rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+                                        onClick={() => editor?.chain().focus().undo().run()}
+                                        disabled={!editor?.can().undo()}
+                                    >
+                                        撤销
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="nodrag nopan nowheel rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+                                        onClick={() => editor?.chain().focus().redo().run()}
+                                        disabled={!editor?.can().redo()}
+                                    >
+                                        重做
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="nodrag nopan nowheel rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-600 transition-colors hover:bg-rose-100"
+                                        onClick={() => {
+                                            editor?.commands.clearContent()
+                                            promptCacheRef.current = ''
+                                            handlePatch({ prompt: '' })
+                                        }}
+                                    >
+                                        清空
+                                    </button>
+                                </div>
+                            </div>
+                            <div onBlur={commitPromptToStore}>
+                                <EditorContent editor={editor} />
+                            </div>
+                        </section>
+
+                        {/* 配置工具栏部分 */}
+                        <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+                            <Typography.Text className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                配置选项
+                            </Typography.Text>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <Typography.Text className="text-xs text-slate-500">模型</Typography.Text>
+                                    <CloudSelect
+                                        className="nodrag nopan nowheel"
+                                        value={data.model}
+                                        options={modelOptions}
+                                        onChange={(value) => handlePatch({ model: String(value) })}
+                                        placeholder="选择模型"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Typography.Text className="text-xs text-slate-500">尺寸</Typography.Text>
+                                    <CloudSelect
+                                        className="nodrag nopan nowheel"
+                                        value={data.size}
+                                        options={IMAGE_SIZES}
+                                        onChange={(value) => handlePatch({ size: String(value) })}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Typography.Text className="text-xs text-slate-500">分辨率</Typography.Text>
+                                    <CloudSelect
+                                        className="nodrag nopan nowheel"
+                                        value={data.resolution}
+                                        options={IMAGE_RESOLUTIONS}
+                                        onChange={(value) => handlePatch({ resolution: String(value) })}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Typography.Text className="text-xs text-slate-500">方向</Typography.Text>
+                                    <CloudSelect
+                                        className="nodrag nopan nowheel"
+                                        value={data.orientation}
+                                        options={IMAGE_ORIENTATIONS}
+                                        onChange={(value) => handlePatch({ orientation: String(value) })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <Typography.Text className="text-xs text-slate-500">生成数量</Typography.Text>
+                                <CloudSelect
+                                    className="nodrag nopan nowheel"
+                                    value={data.count}
+                                    options={IMAGE_COUNTS}
+                                    onChange={(value) => handlePatch({ count: Number(value) })}
+                                />
+                            </div>
+
+                            <PreviewSection title="最终提示词预览">
+                                <Typography.Paragraph className="mb-0! whitespace-pre-wrap text-xs text-slate-600">
+                                    {data.finalPrompt || '等待输入提示词或连接文本节点'}
+                                </Typography.Paragraph>
+                            </PreviewSection>
+
+                            <div className="flex justify-end">
+                                <CloudButton loading={data.status === 'queued' || data.status === 'running'} onClick={handleRunImage}>
+                                    生成图片
+                                </CloudButton>
+                            </div>
+                        </section>
                     </div>
                 </div>
             </NodeToolbar>
