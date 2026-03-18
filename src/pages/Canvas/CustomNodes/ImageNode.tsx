@@ -5,6 +5,7 @@ import StarterKit from '@tiptap/starter-kit'
 import { Typography, message } from 'antd'
 import { Controlled as ControlledZoom } from 'react-medium-image-zoom'
 import 'react-medium-image-zoom/dist/styles.css'
+import '@/pages/Canvas/extensions/aiPromptMention.css'
 import {
     PlusOutlined,
     CloseOutlined,
@@ -30,6 +31,7 @@ import {
     IMAGE_SIZES,
 } from '@/constants/ai-models'
 import { uploadImage } from '@/api/ai'
+import { AiPromptMention } from '@/pages/Canvas/extensions'
 import { useCanvasStore } from '@/store/canvas'
 import type { ImageCanvasNode, ImageNodeData } from '@/types/canvas'
 
@@ -61,7 +63,7 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
     )
 
     const editor = useEditor({
-        extensions: [StarterKit],
+        extensions: [StarterKit, AiPromptMention],
         content: data.prompt || '',
         immediatelyRender: true,
         editorProps: {
@@ -84,7 +86,15 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
             return
         }
 
-        const nextPrompt = editor.getText({ blockSeparator: '\n' }).trim()
+        const nextPrompt = editor
+            .getText({
+                blockSeparator: '\n',
+                textSerializers: {
+                    aiPromptMention: ({ node }: { node: { attrs?: Record<string, unknown> } }) =>
+                        String(node.attrs?.prompt ?? node.attrs?.label ?? ''),
+                },
+            })
+            .trim()
         promptCacheRef.current = nextPrompt
 
         if (nextPrompt !== data.prompt) {
