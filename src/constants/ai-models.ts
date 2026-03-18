@@ -108,12 +108,12 @@ export const VIDEO_RESOLUTIONS = [
   { label: '480p', value: '480p' },
 ];
 
-/** 视频节点时长配置（API 约束：4-12 秒，0 表示不指定） */
+/** 视频节点时长配置（API 约束：4-12 秒） */
 export const VIDEO_DURATION_CONFIG = {
   min: 4,
   max: 12,
   step: 1,
-  defaultValue: 0,
+  defaultValue: 4,
 } as const;
 
 /** 图片生成模型配置 */

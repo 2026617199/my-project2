@@ -172,9 +172,11 @@ function createNodeFactory(type: CanvasNodeType, position: XYPosition): CanvasNo
       aspectRatio: VIDEO_ASPECT_RATIOS[0]?.value ?? '16:9',
       duration: VIDEO_DURATION_CONFIG.defaultValue,
       resolution: VIDEO_RESOLUTIONS[0]?.value ?? '720p',
-      audio: false,
+      audio: true,
       cameraFixed: false,
-      referenceImageUrl: undefined,
+      referenceImageUrls: [],
+      uploadedReferenceImageUrls: [],
+      dismissedAutoReferenceImageUrls: [],
       outputVideos: [],
     },
   }
@@ -231,6 +233,14 @@ function extractChatText(response: any): string {
 }
 function sortByCreatedAt<T extends { createdAt: number }>(items: T[]) {
   return [...items].sort((a, b) => a.createdAt - b.createdAt)
+}
+
+function uniqueUrls(urls: string[]) {
+  const normalized = urls
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  return Array.from(new Set(normalized))
 }
 
 function buildNovelToScriptPrompt(content: string, roleDefinition: string) {
@@ -316,10 +326,38 @@ function recomputeDerivedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
         })),
     )
 
-    const referenceImageUrl = referenceEdges
+    const autoReferenceImageUrl = referenceEdges
       .map(({ edge }) => nodeMap.get(edge.source))
       .find((sourceNode): sourceNode is Extract<CanvasNode, { type: 'image' }> => sourceNode?.type === CANVAS_NODE_TYPES.image)
       ?.data.outputImages[0]?.url
+
+    const legacyReferenceImageUrl =
+      typeof (node.data as { referenceImageUrl?: unknown }).referenceImageUrl === 'string'
+        ? ((node.data as { referenceImageUrl?: string }).referenceImageUrl ?? '').trim()
+        : ''
+
+    const uploadedReferenceImageUrls = uniqueUrls([
+      ...(Array.isArray(node.data.uploadedReferenceImageUrls) ? node.data.uploadedReferenceImageUrls : []),
+      ...(legacyReferenceImageUrl ? [legacyReferenceImageUrl] : []),
+    ])
+
+    const dismissedAutoReferenceImageUrls = uniqueUrls(
+      Array.isArray(node.data.dismissedAutoReferenceImageUrls)
+        ? node.data.dismissedAutoReferenceImageUrls
+        : [],
+    )
+
+    const normalizedAutoReferenceImageUrl = autoReferenceImageUrl?.trim()
+    const shouldIncludeAutoReference =
+      !!normalizedAutoReferenceImageUrl &&
+      !dismissedAutoReferenceImageUrls.includes(normalizedAutoReferenceImageUrl)
+
+    const referenceImageUrls = uniqueUrls([
+      ...(shouldIncludeAutoReference && normalizedAutoReferenceImageUrl
+        ? [normalizedAutoReferenceImageUrl]
+        : []),
+      ...uploadedReferenceImageUrls,
+    ])
 
     return {
       ...node,
@@ -327,7 +365,9 @@ function recomputeDerivedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
         ...node.data,
         promptSegments,
         finalPrompt,
-        referenceImageUrl,
+        referenceImageUrls,
+        uploadedReferenceImageUrls,
+        dismissedAutoReferenceImageUrls,
       },
     }
   })
@@ -574,7 +614,6 @@ function isSameViewport(a: CanvasViewport, b: CanvasViewport) {
     Math.abs(a.zoom - b.zoom) < VIEWPORT_EPSILON
   )
 }
-
 export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
   nodes: [],
   edges: [],
@@ -1038,7 +1077,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
       (edge) => edge.target === nodeId && edge.data?.relationType === 'reference-image',
     )
 
-    if (hasReferenceEdge && !node.data.referenceImageUrl) {
+    if (hasReferenceEdge && node.data.referenceImageUrls.length === 0) {
       get().updateNodeData(nodeId, {
         status: 'error',
         errorMessage: '当前已连接图片节点，但上游图片尚未生成成功，无法作为参考图。',
@@ -1055,9 +1094,9 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     const response = (await createVideoGeneration({
       model: node.data.model,
       prompt: normalizedPrompt,
-      duration: node.data.duration > 0 ? node.data.duration : undefined,
+      duration: node.data.duration,
       aspect_ratio: node.data.aspectRatio,
-      image_urls: node.data.referenceImageUrl ? [node.data.referenceImageUrl] : undefined,
+      image_urls: node.data.referenceImageUrls.length > 0 ? node.data.referenceImageUrls : undefined,
       metadata: {
         resolution: node.data.resolution,
         audio: node.data.audio,

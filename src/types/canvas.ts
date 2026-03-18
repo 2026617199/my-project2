@@ -67,7 +67,15 @@ export interface VideoNodeData extends BaseMediaNodeData {
   audio: boolean
   cameraFixed: boolean
   taskId?: string
-  referenceImageUrl?: string
+  /**
+   * 视频请求最终使用的参考图 URL 列表（对应 VideoGenerationRequest.image_urls）
+   * 排序规则：自动注入参考图（若存在）在首位，手动上传图按上传顺序排列在后。
+   */
+  referenceImageUrls: string[]
+  /** 手动上传的参考图 URL（按上传顺序） */
+  uploadedReferenceImageUrls: string[]
+  /** 用户手动删除过的自动注入参考图 URL，避免在连接不变时被立即回填 */
+  dismissedAutoReferenceImageUrls: string[]
   outputVideos: GeneratedVideoResult[]
 }
 
