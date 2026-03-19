@@ -14,6 +14,7 @@ import {
   VIDEO_MODELS,
   VIDEO_RESOLUTIONS,
 } from '@/constants/ai-models'
+import { PROMPT_ROLE_DEFINITION } from '@/constants/prompts'
 import {
   createChatCompletion,
   createImageGeneration,
@@ -113,7 +114,6 @@ function createNodeFactory(type: CanvasNodeType, position: XYPosition): CanvasNo
         ...baseData,
         title: '小说改剧本',
         agentType: 'novel-to-script',
-        roleDefinition: '',
         prompt: '',
         finalPrompt: '',
         promptSegments: [],
@@ -246,11 +246,7 @@ function uniqueUrls(urls: string[]) {
   return Array.from(new Set(normalized))
 }
 
-function buildNovelToScriptPrompt(content: string, roleDefinition: string) {
-  const roleSection = roleDefinition.trim()
-    ? `角色定义：\n${roleDefinition.trim()}\n\n`
-    : ''
-
+function buildNovelToScriptPrompt(content: string) {
   return [
     '你是一名专业编剧，请将输入的小说内容改写成可拍摄的中文影视剧本。',
     '输出要求：',
@@ -259,12 +255,9 @@ function buildNovelToScriptPrompt(content: string, roleDefinition: string) {
     '3) 优先提高镜头可拍性与对白自然度。',
     '4) 直接输出剧本文本，不要解释过程。',
     '',
-    roleSection,
     '小说内容：',
     content,
-  ]
-    .filter(Boolean)
-    .join('\n')
+  ].join('\n')
 }
 function recomputeDerivedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]))
@@ -967,15 +960,17 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
         })
 
         const response = await createChatCompletion({
-          model: node.data.model || TEXT_MODELS[0]?.model,
+          // model: node.data.model || TEXT_MODELS[0]?.model,
+          // TODO: 目前先固定使用 deepseek-v3.2，后续根据 agentType 支持更多模型
+          model: 'deepseek-v3.2',
           messages: [
             {
               role: 'system',
-              content: '你是一个将小说改写为影视剧本的智能体。',
+              content: PROMPT_ROLE_DEFINITION,
             },
             {
               role: 'user',
-              content: buildNovelToScriptPrompt(node.data.finalPrompt, node.data.roleDefinition),
+              content: buildNovelToScriptPrompt(node.data.finalPrompt),
             },
           ],
           temperature: 0.6,

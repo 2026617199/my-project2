@@ -87,7 +87,6 @@ export interface VideoNodeData extends BaseMediaNodeData {
 
 export interface AgentNodeData extends BaseMediaNodeData {
   agentType: 'novel-to-script'
-  roleDefinition: string
   outputText: string
   model: string
   taskId?: string
