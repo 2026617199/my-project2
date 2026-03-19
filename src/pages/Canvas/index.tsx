@@ -4,7 +4,6 @@ import {
     BackgroundVariant,
     ColorMode,
     Controls,
-    MiniMap,
     ReactFlow,
     ReactFlowProvider,
     useReactFlow,
@@ -12,10 +11,13 @@ import {
 import { Layout } from 'antd'
 
 import { CanvasActionBar } from './components/CanvasActionBar'
+import { CanvasChatDrawer } from './components/CanvasChatDrawer'
+import { CanvasChatFab } from './components/CanvasChatFab'
 import { CanvasContextMenu } from './components/CanvasContextMenu'
 import { CanvasHeader } from './components/CanvasHeader'
 import { canvasEdgeTypes } from './CustomEdges'
 import { canvasNodeTypes } from './CustomNodes'
+import { useCanvasChat } from './hooks/useCanvasChat'
 import { useCanvasConnection } from './hooks/useCanvasConnection'
 import { useCanvasContextMenu } from './hooks/useCanvasContextMenu'
 import { useCanvasViewportSync } from './hooks/useCanvasViewportSync'
@@ -110,6 +112,32 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
         [createNodeAtRandom],
     )
 
+    const {
+        activeModel,
+        activeSessionId,
+        closeDrawer,
+        clearHistory,
+        createSession,
+        hasMoreMessages,
+        hasMoreSessions,
+        hasUnread,
+        isDrawerOpen,
+        isLoadingMessages,
+        isLoadingSessions,
+        isSending,
+        lastError,
+        loadMoreMessages,
+        loadMoreSessions,
+        messages,
+        openDrawer,
+        selectSession,
+        selectedSystemPrompt,
+        sendMessage,
+        sessions,
+        setSelectedSystemPrompt,
+        systemPromptOptions,
+    } = useCanvasChat()
+
     return (
         <div className="relative h-[calc(100vh-65px)] w-full">
             <div className="absolute left-3 top-1/2 z-20 -translate-y-1/2 sm:left-4">
@@ -178,6 +206,32 @@ function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; 
                 onCreateNode={handleCreateNode}
                 onDeleteSelected={deleteSelectedElements}
                 onClose={closeContextMenu}
+            />
+
+            <CanvasChatFab hasUnread={hasUnread} onClick={openDrawer} />
+
+            <CanvasChatDrawer
+                isOpen={isDrawerOpen}
+                onClose={closeDrawer}
+                sessions={sessions}
+                activeSessionId={activeSessionId}
+                messages={messages}
+                activeModelName={activeModel.name}
+                isLoadingSessions={isLoadingSessions}
+                isLoadingMessages={isLoadingMessages}
+                isSending={isSending}
+                hasMoreSessions={hasMoreSessions}
+                hasMoreMessages={hasMoreMessages}
+                onCreateSession={createSession}
+                onClearHistory={clearHistory}
+                onSelectSession={selectSession}
+                onLoadMoreSessions={loadMoreSessions}
+                onLoadMoreMessages={loadMoreMessages}
+                onSendMessage={sendMessage}
+                selectedSystemPrompt={selectedSystemPrompt}
+                setSelectedSystemPrompt={setSelectedSystemPrompt}
+                systemPromptOptions={systemPromptOptions}
+                lastError={lastError}
             />
         </div>
     )

@@ -54,6 +54,19 @@ export const TEXT_MODELS = [
   { id: 41, name: 'Claude Opus 4.6', model: 'claude-opus-4-6', platform: 'anthropic', platformId: 11 },
   { id: 42, name: 'Claude Haiku 4.5', model: 'claude-haiku-4-5', platform: 'anthropic', platformId: 11 },
   { id: 43, name: 'Claude Sonnet 4.6', model: 'claude-sonnet-4-6', platform: 'anthropic', platformId: 11 },
+  { id: 44, name: 'DeepSeek V3.2', model: 'deepseek-v3.2', platform: 'deepseek', platformId: 17 },
+];
+
+/** 画布聊天可用文本模型（配置驱动，后续扩展仅需追加配置） */
+export const CHAT_TEXT_MODELS = [
+  { id: 44, name: 'DeepSeek V3.2', model: 'deepseek-v3.2', platform: 'deepseek', platformId: 17 },
+];
+
+/** 画布聊天系统提示词配置 */
+export const CHAT_SYSTEM_PROMPTS = [
+  { label: '小说改剧本', value: '小说改剧本' },
+  { label: '即梦系统提示词', value: '即梦系统提示词' },
+  { label: '拉片', value: '拉片' },
 ];
 
 /** 视频模型配置 */
