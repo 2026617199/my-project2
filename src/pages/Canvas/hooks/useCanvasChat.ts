@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { createMessages } from '@/api/ai'
+import { createMessagesStream } from '@/api/ai'
 import { CHAT_SYSTEM_PROMPTS, CHAT_TEXT_MODELS } from '@/constants/ai-models'
 import type { AnthropicGenerationRequest, AnthropicMessage } from '@/types/AnthropicGeneration'
 import type { ChatMessage, ChatSession } from '@/types/chat'
+import { consumeAnthropicSSE } from '@/utils/anthropicStream'
 import {
   appendMessagesToSession,
   clearChatHistory,
@@ -184,6 +185,7 @@ export function useCanvasChat() {
         model: activeModel.model,
         messages: requestMessages,
         max_tokens: 32000,
+        stream: true,
         system: selectedSystemPrompt || undefined,
       }
 
@@ -199,22 +201,48 @@ export function useCanvasChat() {
 
         setSessions((prev) => upsertSessionToTop(prev, updatedSessionWithUser))
 
-        const response = await createMessages(requestPayload)
-        const assistantText = response.content
-          .filter((block) => block.type === 'text')
-          .map((block) => block.text)
-          .join('')
-          .trim()
+        const assistantDraft = createLocalMessage('assistant', '')
+        if (activeSessionIdRef.current === currentSessionId) {
+          setMessages((prev) => [...prev, assistantDraft])
+        }
 
-        const assistantMessage: ChatMessage = {
-          ...createLocalMessage('assistant', assistantText || '（模型未返回文本内容）'),
-          model: response.model,
-          requestId: response.id,
-          stopReason: response.stop_reason,
-          usage: {
-            inputTokens: response.usage.input_tokens,
-            outputTokens: response.usage.output_tokens,
+        const streamResponse = await createMessagesStream(requestPayload)
+        const streamResult = await consumeAnthropicSSE(streamResponse, {
+          onText: (chunk) => {
+            if (!chunk || activeSessionIdRef.current !== currentSessionId) {
+              return
+            }
+
+            setMessages((prev) =>
+              prev.map((message) =>
+                message.id === assistantDraft.id
+                  ? {
+                      ...message,
+                      content: message.content + chunk,
+                    }
+                  : message,
+              ),
+            )
+
+            if (!isDrawerOpenRef.current) {
+              setHasUnread(true)
+            }
           },
+        })
+
+        const assistantText = streamResult.text.trim() || '（模型未返回文本内容）'
+        const assistantMessage: ChatMessage = {
+          ...assistantDraft,
+          content: assistantText,
+          model: streamResult.model || activeModel.model,
+          requestId: streamResult.id,
+          stopReason: streamResult.stop_reason,
+          usage: streamResult.usage
+            ? {
+                inputTokens: streamResult.usage.input_tokens,
+                outputTokens: streamResult.usage.output_tokens,
+              }
+            : undefined,
         }
 
         const updatedSessionWithAssistant = await appendMessagesToSession(currentSessionId, [assistantMessage], {
@@ -223,7 +251,9 @@ export function useCanvasChat() {
         })
 
         if (activeSessionIdRef.current === currentSessionId) {
-          setMessages((prev) => [...prev, assistantMessage])
+          setMessages((prev) =>
+            prev.map((message) => (message.id === assistantDraft.id ? assistantMessage : message)),
+          )
         }
 
         setSessions((prev) => upsertSessionToTop(prev, updatedSessionWithAssistant))

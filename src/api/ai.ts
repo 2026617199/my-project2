@@ -1,4 +1,7 @@
 import aiService from '@/utils/aiRequest'
+import type { AnthropicGenerationRequest, AnthropicGenerationResponse } from '@/types/AnthropicGeneration'
+
+const AI_TOKEN = import.meta.env.VITE_AI_TOKEN
 
 // ===================== 账户余额相关 =====================
 
@@ -60,12 +63,36 @@ export function createChatCompletion(data: any) {
 }
 
 // 兼容 Anthropic 格式的文字对话接口
-export function createMessages(data: any) {
+export function createMessages(data: AnthropicGenerationRequest) {
   return aiService({
     url: '/v1/messages',
     method: 'post',
     data
+  }) as Promise<AnthropicGenerationResponse>
+}
+
+// Anthropic SSE 流式接口（用于打字机效果）
+export async function createMessagesStream(data: AnthropicGenerationRequest) {
+  const response = await fetch('https://toapis.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      Accept: 'text/event-stream',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${AI_TOKEN}`,
+    },
+    body: JSON.stringify(data),
   })
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '')
+    throw new Error(errorText || `SSE 请求失败：${response.status}`)
+  }
+
+  if (!response.body) {
+    throw new Error('浏览器不支持 SSE 流式读取')
+  }
+
+  return response
 }
 
 // ===================== 文件上传相关 =====================
