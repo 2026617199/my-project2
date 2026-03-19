@@ -1,3 +1,5 @@
+import { PROMPT_JIMENG_SYSTEM, PROMPT_LAPIAN, PROMPT_NOVEL_TO_SCRIPT } from './prompts'
+
 /** 文本模型配置 */
 export const TEXT_MODELS = [
   // OpenAI 模型
@@ -64,9 +66,10 @@ export const CHAT_TEXT_MODELS = [
 
 /** 画布聊天系统提示词配置 */
 export const CHAT_SYSTEM_PROMPTS = [
-  { label: '小说改剧本', value: '小说改剧本' },
-  { label: '即梦系统提示词', value: '即梦系统提示词' },
-  { label: '拉片', value: '拉片' },
+  { label: '小说改剧本', value: PROMPT_NOVEL_TO_SCRIPT },
+  { label: '即梦系统提示词', value: PROMPT_JIMENG_SYSTEM },
+  { label: '拉片', value: PROMPT_LAPIAN },
+  { label: '不选择智能体', value: '' },
 ];
 
 /** 视频模型配置 */
