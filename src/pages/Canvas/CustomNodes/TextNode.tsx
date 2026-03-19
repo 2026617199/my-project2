@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef } from 'react'
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
 import { Input } from 'antd'
 import type { TextAreaRef } from 'antd/es/input/TextArea'
 
@@ -8,10 +8,13 @@ import { NodeShell } from './shared'
 import { useCanvasStore } from '@/store/canvas'
 import type { TextCanvasNode } from '@/types/canvas'
 
-function TextNode({ id, data, selected }: NodeProps<TextCanvasNode>) {
+function TextNode({ id, data, selected, width, height }: NodeProps<TextCanvasNode>) {
     const updateNodeData = useCanvasStore((state) => state.updateNodeData)
     const textAreaRef = useRef<TextAreaRef>(null)
     const committedValueRef = useRef(data.content)
+    const nodeWidth = width ?? data.width
+    const nodeHeight = height ?? data.height
+    const textAreaHeight = nodeHeight ? Math.max(nodeHeight - 90, 120) : 120
 
     const commitContent = useCallback(
         (value: string) => {
@@ -44,7 +47,21 @@ function TextNode({ id, data, selected }: NodeProps<TextCanvasNode>) {
             status={data.status}
             selected={selected}
             subtitle="连接到图片/视频节点后，会按连线顺序拼接进最终提示词。"
+            width={nodeWidth}
         >
+            <NodeResizer
+                isVisible={selected}
+                minWidth={280}
+                minHeight={180}
+                handleClassName="h-2.5! w-2.5! rounded-full! border-2! border-white! bg-sky-500!"
+                lineClassName="border-sky-300!"
+                onResizeEnd={(_, params) => {
+                    updateNodeData(id, {
+                        width: params.width,
+                        height: params.height,
+                    })
+                }}
+            />
             <Input.TextArea
                 ref={textAreaRef}
                 defaultValue={data.content}
@@ -57,7 +74,8 @@ function TextNode({ id, data, selected }: NodeProps<TextCanvasNode>) {
                 placeholder="输入这段文本，例如镜头语言、人物描述、光影风格……"
                 className="rounded-2xl nodrag nopan nowheel"
                 style={{
-                    minHeight: 120,
+                    minHeight: textAreaHeight,
+                    height: textAreaHeight,
                     resize: 'none',
                 }}
             />
