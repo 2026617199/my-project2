@@ -238,6 +238,38 @@ function sortByCreatedAt<T extends { createdAt: number }>(items: T[]) {
   return [...items].sort((a, b) => a.createdAt - b.createdAt)
 }
 
+function areStringArraysEqual(a: string[], b: string[]) {
+  if (a === b) {
+    return true
+  }
+
+  if (a.length !== b.length) {
+    return false
+  }
+
+  return a.every((item, index) => item === b[index])
+}
+
+function arePromptSegmentsEqual(a: PromptSegment[], b: PromptSegment[]) {
+  if (a === b) {
+    return true
+  }
+
+  if (a.length !== b.length) {
+    return false
+  }
+
+  return a.every((item, index) => {
+    const other = b[index]
+    return (
+      item.edgeId === other.edgeId &&
+      item.sourceNodeId === other.sourceNodeId &&
+      item.content === other.content &&
+      item.createdAt === other.createdAt
+    )
+  })
+}
+
 function uniqueUrls(urls: string[]) {
   const normalized = urls
     .map((item) => item.trim())
@@ -261,8 +293,9 @@ function buildNovelToScriptPrompt(content: string) {
 }
 function recomputeDerivedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]))
+  let hasChanged = false
 
-  return nodes.map((node) => {
+  const nextNodes = nodes.map((node) => {
     if (
       node.type !== CANVAS_NODE_TYPES.image &&
       node.type !== CANVAS_NODE_TYPES.video &&
@@ -293,6 +326,15 @@ function recomputeDerivedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
     const finalPrompt = [upstreamPrompt, ownPrompt].filter(Boolean).join('\n\n')
 
     if (node.type === CANVAS_NODE_TYPES.agent) {
+      const shouldReuseNode =
+        node.data.finalPrompt === finalPrompt &&
+        arePromptSegmentsEqual(node.data.promptSegments, promptSegments)
+
+      if (shouldReuseNode) {
+        return node
+      }
+
+      hasChanged = true
       return {
         ...node,
         data: {
@@ -344,6 +386,32 @@ function recomputeDerivedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
       ...uploadedReferenceImageUrls,
     ])
 
+    const shouldReuseNode =
+      node.data.finalPrompt === finalPrompt &&
+      arePromptSegmentsEqual(node.data.promptSegments, promptSegments) &&
+      areStringArraysEqual(node.data.referenceImageUrls, referenceImageUrls) &&
+      areStringArraysEqual(node.data.uploadedReferenceImageUrls, uploadedReferenceImageUrls) &&
+      areStringArraysEqual(node.data.dismissedAutoReferenceImageUrls, dismissedAutoReferenceImageUrls)
+
+    if (shouldReuseNode) {
+      return node
+    }
+
+    hasChanged = true
+    if (node.type === CANVAS_NODE_TYPES.image) {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          promptSegments,
+          finalPrompt,
+          referenceImageUrls,
+          uploadedReferenceImageUrls,
+          dismissedAutoReferenceImageUrls,
+        },
+      }
+    }
+
     return {
       ...node,
       data: {
@@ -356,6 +424,8 @@ function recomputeDerivedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
       },
     }
   })
+
+  return hasChanged ? nextNodes : nodes
 }
 
 function serializeGraph(nodes: CanvasNode[], edges: CanvasEdge[], viewport: CanvasViewport): CanvasPersistedState {
