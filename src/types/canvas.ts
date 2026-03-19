@@ -56,6 +56,12 @@ export interface ImageNodeData extends BaseMediaNodeData {
   orientation: string
   count: number
   taskId?: string
+  /** 图片请求最终使用的参考图 URL 列表（对应 ImageGenerationRequest.image_urls） */
+  referenceImageUrls: string[]
+  /** 手动上传的参考图 URL（按上传顺序） */
+  uploadedReferenceImageUrls: string[]
+  /** 用户手动删除过的自动注入参考图 URL，避免在连接不变时被立即回填 */
+  dismissedAutoReferenceImageUrls: string[]
   outputImages: GeneratedImageResult[]
 }
 

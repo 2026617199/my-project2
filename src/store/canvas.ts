@@ -153,6 +153,9 @@ function createNodeFactory(type: CanvasNodeType, position: XYPosition): CanvasNo
         resolution: IMAGE_RESOLUTIONS[0]?.value ?? '1K',
         orientation: IMAGE_ORIENTATIONS[0]?.value ?? 'landscape',
         count: IMAGE_COUNTS[0]?.value ?? 1,
+        referenceImageUrls: [],
+        uploadedReferenceImageUrls: [],
+        dismissedAutoReferenceImageUrls: [],
         outputImages: [],
       },
     }
@@ -295,17 +298,6 @@ function recomputeDerivedNodes(nodes: CanvasNode[], edges: CanvasEdge[]) {
     const ownPrompt = node.data.prompt.trim()
     const upstreamPrompt = promptSegments.map((segment) => segment.content).join('\n\n')
     const finalPrompt = [upstreamPrompt, ownPrompt].filter(Boolean).join('\n\n')
-
-    if (node.type === CANVAS_NODE_TYPES.image) {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          promptSegments,
-          finalPrompt,
-        },
-      }
-    }
 
     if (node.type === CANVAS_NODE_TYPES.agent) {
       return {
@@ -922,11 +914,24 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
         errorMessage: undefined,
       })
 
+      const hasReferenceEdge = state.edges.some(
+        (edge) => edge.target === nodeId && edge.data?.relationType === 'reference-image',
+      )
+
+      if (hasReferenceEdge && node.data.referenceImageUrls.length === 0) {
+        get().updateNodeData(nodeId, {
+          status: 'error',
+          errorMessage: '当前已连接图片节点，但上游图片尚未生成成功，无法作为参考图。',
+        })
+        return
+      }
+
       const response = (await createImageGeneration({
         model: node.data.model,
         prompt: normalizedPrompt,
         size: node.data.size,
         n: node.data.count,
+        image_urls: node.data.referenceImageUrls.length > 0 ? node.data.referenceImageUrls : undefined,
         metadata: {
           resolution: node.data.resolution,
           orientation: node.data.orientation,

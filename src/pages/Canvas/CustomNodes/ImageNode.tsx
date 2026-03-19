@@ -49,11 +49,14 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
     const [hasImageLoadError, setHasImageLoadError] = useState(false)
     const [isUploadLoading, setIsUploadLoading] = useState(false)
     const [uploadError, setUploadError] = useState<string | undefined>(undefined)
+    const [isReferenceUploadLoading, setIsReferenceUploadLoading] = useState(false)
+    const [referenceUploadError, setReferenceUploadError] = useState<string | undefined>(undefined)
     const [activeToolbarAction, setActiveToolbarAction] = useState<ActionToolbarItem['key'] | null>(
         null,
     )
     const [isImageZoomed, setIsImageZoomed] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const referenceFileInputRef = useRef<HTMLInputElement>(null)
     const toolbarActionTimerRef = useRef<number | null>(null)
     const promptCacheRef = useRef(data.prompt ?? '')
 
@@ -157,6 +160,48 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
         [id, data.outputImages, updateNodeData],
     )
 
+    const uploadReferenceImage = useCallback(
+        async (file: File) => {
+            setIsReferenceUploadLoading(true)
+            setReferenceUploadError(undefined)
+
+            try {
+                const formData = new FormData()
+                formData.append('file', file)
+                formData.append('purpose', 'generation')
+
+                const response = await uploadImage(formData)
+                if (response.success && response.data?.url) {
+                    const currentUploaded = Array.isArray(data.uploadedReferenceImageUrls)
+                        ? data.uploadedReferenceImageUrls
+                        : []
+                    const appended = [...currentUploaded, response.data.url]
+
+                    handlePatch({
+                        uploadedReferenceImageUrls: Array.from(new Set(appended)),
+                        dismissedAutoReferenceImageUrls: (data.dismissedAutoReferenceImageUrls ?? []).filter(
+                            (item) => item !== response.data.url,
+                        ),
+                    })
+
+                    message.success('参考图上传成功')
+                    return
+                }
+
+                const errorMsg = response.message || '上传失败，请稍后重试'
+                setReferenceUploadError(errorMsg)
+                message.error(errorMsg)
+            } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : '上传失败，请检查网络连接'
+                setReferenceUploadError(errorMsg)
+                message.error(errorMsg)
+            } finally {
+                setIsReferenceUploadLoading(false)
+            }
+        },
+        [data.dismissedAutoReferenceImageUrls, data.uploadedReferenceImageUrls, handlePatch],
+    )
+
     // 处理文件选择
     const handleImageUpload = useCallback(
         (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,6 +227,27 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
         [uploadImageFile],
     )
 
+    const handleReferenceImageUpload = useCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) => {
+            const file = event.target.files?.[0]
+            if (!file) {
+                return
+            }
+
+            const validation = validateFile(file)
+            if (!validation.valid) {
+                setReferenceUploadError(validation.error)
+                message.error(validation.error)
+                event.target.value = ''
+                return
+            }
+
+            void uploadReferenceImage(file)
+            event.target.value = ''
+        },
+        [uploadReferenceImage],
+    )
+
     // 删除指定索引的图片
     const handleDeleteImage = useCallback(
         (index: number) => {
@@ -191,7 +257,22 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
         [id, data.outputImages, updateNodeData],
     )
 
+    const handleDeleteReferenceImage = useCallback(
+        (url: string) => {
+            const nextUploaded = (data.uploadedReferenceImageUrls ?? []).filter((item) => item !== url)
+            const dismissed = Array.from(new Set([...(data.dismissedAutoReferenceImageUrls ?? []), url]))
+
+            handlePatch({
+                uploadedReferenceImageUrls: nextUploaded,
+                dismissedAutoReferenceImageUrls: dismissed,
+            })
+        },
+        [data.dismissedAutoReferenceImageUrls, data.uploadedReferenceImageUrls, handlePatch],
+    )
+
     const previewImageUrl = data.outputImages[0]?.url
+    const referenceImageUrls = data.referenceImageUrls ?? []
+    const hasHorizontalScroll = referenceImageUrls.length > 8
 
     const actionToolbarItems = useMemo<ActionToolbarItem[]>(
         () => [
@@ -297,6 +378,24 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
         }
     }, [])
 
+    useEffect(() => {
+        const patch: Partial<ImageNodeData> = {}
+
+        if (!Array.isArray(data.referenceImageUrls)) {
+            patch.referenceImageUrls = []
+        }
+        if (!Array.isArray(data.uploadedReferenceImageUrls)) {
+            patch.uploadedReferenceImageUrls = []
+        }
+        if (!Array.isArray(data.dismissedAutoReferenceImageUrls)) {
+            patch.dismissedAutoReferenceImageUrls = []
+        }
+
+        if (Object.keys(patch).length > 0) {
+            handlePatch(patch)
+        }
+    }, [data, handlePatch])
+
     return (
         <>
             <NodeToolbar isVisible position={Position.Top} offset={10 * zoom}>
@@ -336,6 +435,58 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
                 >
                     {/* 图片节点工具栏 */}
                     <div className="space-y-4">
+                        <section className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => referenceFileInputRef.current?.click()}
+                                    disabled={isReferenceUploadLoading}
+                                    className="nodrag nopan nowheel flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-slate-200 text-slate-600 transition-colors hover:border-sky-400 hover:bg-sky-50 hover:text-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                    title="上传参考图"
+                                    aria-label="上传参考图"
+                                >
+                                    <PlusOutlined className="text-lg" />
+                                </button>
+
+                                <div
+                                    className={`nodrag nopan nowheel h-16 flex-1 rounded-xl border border-slate-200 bg-white px-2 py-1 ${hasHorizontalScroll ? 'overflow-x-auto' : 'overflow-x-hidden'}`}
+                                >
+                                    {referenceImageUrls.length > 0 ? (
+                                        <div className="flex h-full items-center gap-2">
+                                            {referenceImageUrls.map((url, index) => (
+                                                <div key={`${url}-${index}`} className="group relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-200">
+                                                    <img src={url} alt={`参考图-${index + 1}`} className="h-full w-full object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteReferenceImage(url)}
+                                                        className="nodrag nopan nowheel absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-bl-md bg-rose-500/90 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                                        title="删除参考图"
+                                                        aria-label={`删除参考图${index + 1}`}
+                                                    >
+                                                        <DeleteOutlined className="text-[10px]" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex h-full items-center text-xs text-slate-400">
+                                            暂无参考图，点击左侧按钮上传（支持自动注入上游图片）。
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <input
+                                ref={referenceFileInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                className="hidden"
+                                onChange={handleReferenceImageUpload}
+                            />
+                            {referenceUploadError ? (
+                                <Typography.Text className="block text-xs text-rose-600">{referenceUploadError}</Typography.Text>
+                            ) : null}
+                        </section>
+
                         <section className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
                             <div className="flex items-center justify-between">
                                 <Typography.Text className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
