@@ -63,12 +63,12 @@ export function createChatCompletion(data: any) {
 }
 
 // 兼容 Anthropic 格式的文字对话接口
-export function createMessages(data: AnthropicGenerationRequest) {
+export function createMessages(data) {
   return aiService({
     url: '/v1/messages',
     method: 'post',
     data
-  }) as Promise<AnthropicGenerationResponse>
+  }) 
 }
 
 // Anthropic SSE 流式接口（用于打字机效果）
