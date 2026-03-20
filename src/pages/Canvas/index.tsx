@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import {
     ReactFlowProvider,
     ReactFlow,
@@ -10,6 +10,8 @@ import {
     addEdge,
     type Connection,
 } from '@xyflow/react'
+
+import { FloatingSidebar } from './components/FloatingSidebar'
 
 import type {
     AllNodeType,
@@ -41,10 +43,10 @@ const initialEdges: EdgeType[] = [
     },
 ]
 
-// 画布组件
-const Canvas = () => {
+// 画布流组件：仅负责 ReactFlow 相关状态与渲染。
+const CanvasFlow = () => {
     // 节点状态
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+    const [nodes, , onNodesChange] = useNodesState(initialNodes)
     // 边状态
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
@@ -57,28 +59,38 @@ const Canvas = () => {
     )
 
     return (
-        <div className="h-screen w-screen">
-            <ReactFlow<AllNodeType, EdgeType>
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                fitView
-            >
-                <Background />
-                <Controls />
-                <MiniMap />
-            </ReactFlow>
-        </div>
+        <ReactFlow<AllNodeType, EdgeType>
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            fitView
+        >
+            <Background />
+            <Controls />
+            <MiniMap />
+        </ReactFlow>
     )
 }
 
 // 外部组件 - 提供 ReactFlowProvider
-export default function CanvasPage() {
+const CanvasPage = () => {
+    // 侧边栏动作占位：放在页面层，避免被画布节点高频状态更新牵连。
+    const handleSidebarAction = useCallback((actionId: string) => {
+        console.info(`[CanvasSidebar] TODO: implement action -> ${actionId}`)
+    }, [])
+
     return (
         <ReactFlowProvider>
-            <Canvas />
+            <div className="h-screen w-screen">
+                <CanvasFlow />
+
+                {/* 悬浮侧边栏：与 CanvasFlow 同级，避免节点移动时不必要重渲染。 */}
+                <FloatingSidebar onAction={handleSidebarAction} />
+            </div>
         </ReactFlowProvider>
     )
 }
+
+export default CanvasPage
