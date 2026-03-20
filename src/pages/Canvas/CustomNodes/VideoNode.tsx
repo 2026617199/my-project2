@@ -16,6 +16,8 @@ import {
 import ReactPlayer from 'react-player'
 
 import { NodeShell, PreviewSection } from './shared'
+import { useTransientToolbarAction } from './hooks/useTransientToolbarAction'
+import { validateImageFile } from './utils'
 
 import { uploadImage } from '@/api/ai'
 import CloudButton from '@/components/CloudButton'
@@ -40,13 +42,16 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
     const runNode = useCanvasStore((state) => state.runNode)
     const zoom = useCanvasStore((state) => state.viewport.zoom)
 
-    const [activeToolbarAction, setActiveToolbarAction] = useState<ActionToolbarItem['key'] | null>(null)
     const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false)
     const [isUploadLoading, setIsUploadLoading] = useState(false)
     const [uploadError, setUploadError] = useState<string>()
-    const toolbarActionTimerRef = useRef<number | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const promptCacheRef = useRef(data.prompt ?? '')
+    const {
+        activeAction: activeTransientAction,
+        trigger: triggerToolbarAction,
+        clearTimer: clearToolbarActionTimer,
+    } = useTransientToolbarAction()
 
     const previewVideoUrl = data.outputVideos[0]?.url
 
@@ -76,18 +81,10 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
     )
 
     const showActionFeedback = useCallback((action: ActionToolbarItem['key'], label: string) => {
-        setActiveToolbarAction(action)
-
-        if (toolbarActionTimerRef.current) {
-            window.clearTimeout(toolbarActionTimerRef.current)
-        }
-
-        toolbarActionTimerRef.current = window.setTimeout(() => {
-            setActiveToolbarAction((prev) => (prev === action ? null : prev))
-        }, 320)
+        triggerToolbarAction(action)
 
         message.info(`${label}事件已触发（占位功能）`)
-    }, [])
+    }, [triggerToolbarAction])
 
     const editor = useEditor({
         extensions: [StarterKit],
@@ -113,21 +110,6 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
             handlePatch({ prompt: nextPrompt })
         }
     }, [data.prompt, editor, handlePatch])
-
-    const validateFile = (file: File): { valid: boolean; error?: string } => {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-        const maxSize = 10 * 1024 * 1024
-
-        if (!allowedTypes.includes(file.type)) {
-            return { valid: false, error: '仅支持 JPEG、PNG、WebP、GIF 格式图片' }
-        }
-
-        if (file.size > maxSize) {
-            return { valid: false, error: '图片大小不能超过 10MB' }
-        }
-
-        return { valid: true }
-    }
 
     const uploadReferenceImage = useCallback(
         async (file: File) => {
@@ -179,7 +161,7 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
                 return
             }
 
-            const validation = validateFile(file)
+            const validation = validateImageFile(file)
             if (!validation.valid) {
                 setUploadError(validation.error)
                 message.error(validation.error)
@@ -213,8 +195,6 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
 
     const handleToolbarAction = useCallback(
         (item: ActionToolbarItem) => {
-            setActiveToolbarAction(item.key)
-
             if (item.key === 'zoom') {
                 if (!previewVideoUrl) {
                     message.warning('当前没有可放大查看的视频')
@@ -222,13 +202,7 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
                 }
 
                 setIsVideoPlayerOpen(true)
-
-                if (toolbarActionTimerRef.current) {
-                    window.clearTimeout(toolbarActionTimerRef.current)
-                }
-                toolbarActionTimerRef.current = window.setTimeout(() => {
-                    setActiveToolbarAction((prev) => (prev === 'zoom' ? null : prev))
-                }, 320)
+                triggerToolbarAction('zoom')
                 return
             }
 
@@ -238,12 +212,11 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
     )
 
     useEffect(() => {
+        // 组件卸载时清理计时器，避免残留异步任务。
         return () => {
-            if (toolbarActionTimerRef.current) {
-                window.clearTimeout(toolbarActionTimerRef.current)
-            }
+            clearToolbarActionTimer()
         }
-    }, [])
+    }, [clearToolbarActionTimer])
 
     useEffect(() => {
         const patch: Partial<VideoNodeData> = {}
@@ -313,7 +286,7 @@ function VideoNode({ id, data, selected }: NodeProps<VideoCanvasNode>) {
                     style={{ transform: `scale(${zoom})`, transformOrigin: 'bottom center' }}
                 >
                     {actionToolbarItems.map((item) => {
-                        const isActive = item.key === 'zoom' ? isVideoPlayerOpen : activeToolbarAction === item.key
+                        const isActive = item.key === 'zoom' ? isVideoPlayerOpen : activeTransientAction === item.key
 
                         return (
                             <button

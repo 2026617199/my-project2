@@ -9,6 +9,7 @@ import {
     useReactFlow,
 } from '@xyflow/react'
 import { Layout } from 'antd'
+import { useShallow } from 'zustand/react/shallow'
 
 import { CanvasActionBar } from './components/CanvasActionBar'
 import { CanvasChatDrawer } from './components/CanvasChatDrawer'
@@ -49,25 +50,49 @@ export default function CanvasPage() {
 
 function CanvasEditor({ colorMode, paneClickDistance }: { colorMode: ColorMode; paneClickDistance: number }) {
     const reactFlow = useReactFlow<CanvasNode, CanvasEdge>()
-    const nodes = useCanvasStore((state) => state.nodes)
-    const edges = useCanvasStore((state) => state.edges)
-    const contextMenu = useCanvasStore((state) => state.contextMenu)
-    const viewport = useCanvasStore((state) => state.viewport)
-    const applyNodeChanges = useCanvasStore((state) => state.applyNodeChanges)
-    const applyEdgeChanges = useCanvasStore((state) => state.applyEdgeChanges)
-    const connectNodes = useCanvasStore((state) => state.connectNodes)
-    const reconnectExistingEdge = useCanvasStore((state) => state.reconnectEdge)
-    const createNode = useCanvasStore((state) => state.createNode)
-    const createNodeAtRandom = useCanvasStore((state) => state.createNodeAtRandom)
-    const createNodeAndConnect = useCanvasStore((state) => state.createNodeAndConnect)
-    const openContextMenu = useCanvasStore((state) => state.openContextMenu)
-    const closeContextMenu = useCanvasStore((state) => state.closeContextMenu)
-    const setSelection = useCanvasStore((state) => state.setSelection)
-    const deleteSelectedElements = useCanvasStore((state) => state.deleteSelectedElements)
-    const setViewport = useCanvasStore((state) => state.setViewport)
-    const saveGraph = useCanvasStore((state) => state.saveGraph)
-    const hydrateGraph = useCanvasStore((state) => state.hydrateGraph)
-    const resetToSavedGraph = useCanvasStore((state) => state.resetToSavedGraph)
+    const {
+        nodes,
+        edges,
+        contextMenu,
+        viewport,
+        applyNodeChanges,
+        applyEdgeChanges,
+        connectNodes,
+        reconnectExistingEdge,
+        createNode,
+        createNodeAtRandom,
+        createNodeAndConnect,
+        openContextMenu,
+        closeContextMenu,
+        setSelection,
+        deleteSelectedElements,
+        setViewport,
+        saveGraph,
+        hydrateGraph,
+        resetToSavedGraph,
+    } = useCanvasStore(
+        useShallow((state) => ({
+            nodes: state.nodes,
+            edges: state.edges,
+            contextMenu: state.contextMenu,
+            viewport: state.viewport,
+            applyNodeChanges: state.applyNodeChanges,
+            applyEdgeChanges: state.applyEdgeChanges,
+            connectNodes: state.connectNodes,
+            reconnectExistingEdge: state.reconnectEdge,
+            createNode: state.createNode,
+            createNodeAtRandom: state.createNodeAtRandom,
+            createNodeAndConnect: state.createNodeAndConnect,
+            openContextMenu: state.openContextMenu,
+            closeContextMenu: state.closeContextMenu,
+            setSelection: state.setSelection,
+            deleteSelectedElements: state.deleteSelectedElements,
+            setViewport: state.setViewport,
+            saveGraph: state.saveGraph,
+            hydrateGraph: state.hydrateGraph,
+            resetToSavedGraph: state.resetToSavedGraph,
+        })),
+    )
 
     useEffect(() => {
         hydrateGraph()

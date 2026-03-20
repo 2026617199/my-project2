@@ -72,9 +72,10 @@ export function createMessages(data) {
 }
 
 // Anthropic SSE 流式接口（用于打字机效果）
-export async function createMessagesStream(data: AnthropicGenerationRequest) {
+export async function createMessagesStream(data: AnthropicGenerationRequest, signal?: AbortSignal) {
   const response = await fetch('https://toapis.com/v1/messages', {
     method: 'POST',
+    signal,
     headers: {
       Accept: 'text/event-stream',
       'Content-Type': 'application/json',

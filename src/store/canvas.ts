@@ -60,6 +60,8 @@ const DEFAULT_VIEWPORT: CanvasViewport = {
 }
 
 const POLL_INTERVAL = 3000
+const imagePollingControllers = new Map<string, AbortController>()
+const videoPollingControllers = new Map<string, AbortController>()
 
 const VIEWPORT_EPSILON = 0.0001
 
@@ -545,9 +547,28 @@ function updateStatusPatch<T extends ImageNodeData | VideoNodeData>(
   }
 }
 
-async function pollImageGeneration(taskId: string, nodeId: string) {
-  while (true) {
-    await wait(POLL_INTERVAL)
+function clearPollingController(nodeId: string) {
+  const imageController = imagePollingControllers.get(nodeId)
+  if (imageController) {
+    imageController.abort()
+    imagePollingControllers.delete(nodeId)
+  }
+
+  const videoController = videoPollingControllers.get(nodeId)
+  if (videoController) {
+    videoController.abort()
+    videoPollingControllers.delete(nodeId)
+  }
+}
+
+async function pollImageGeneration(taskId: string, nodeId: string, signal: AbortSignal) {
+  try {
+    while (true) {
+      await wait(POLL_INTERVAL, signal)
+      if (signal.aborted) {
+        return
+      }
+
     const response = (await getImageTaskStatus(taskId)) as ImageGenerationResponse
     const state = useCanvasStore.getState()
     const imageNode = state.nodes.find((node) => node.id === nodeId)
@@ -594,15 +615,29 @@ async function pollImageGeneration(taskId: string, nodeId: string) {
     const recomputedNodes = withRecomputedNodes(nextNodes, state.edges)
     useCanvasStore.setState({ nodes: recomputedNodes })
 
-    if (response.status === 'completed' || response.status === 'failed') {
-      return
+      if (response.status === 'completed' || response.status === 'failed') {
+        return
+      }
+    }
+  } catch {
+    // 轮询被中断时静默退出，避免影响正常交互。
+    return
+  } finally {
+    const activeController = imagePollingControllers.get(nodeId)
+    if (activeController?.signal === signal) {
+      imagePollingControllers.delete(nodeId)
     }
   }
 }
 
-async function pollVideoGeneration(taskId: string, nodeId: string) {
-  while (true) {
-    await wait(POLL_INTERVAL)
+async function pollVideoGeneration(taskId: string, nodeId: string, signal: AbortSignal) {
+  try {
+    while (true) {
+      await wait(POLL_INTERVAL, signal)
+      if (signal.aborted) {
+        return
+      }
+
     const response = (await getVideoTaskStatus(taskId)) as VideoTaskStatusResponse
     const result = response.result
     const hasResult = result !== null && result !== undefined
@@ -650,15 +685,43 @@ async function pollVideoGeneration(taskId: string, nodeId: string) {
     const recomputedNodes = withRecomputedNodes(nextNodes, state.edges)
     useCanvasStore.setState({ nodes: recomputedNodes })
 
-    if (hasResult || response.status === 'failed') {
-      return
+      if (hasResult || response.status === 'failed') {
+        return
+      }
+    }
+  } catch {
+    // 轮询被中断时静默退出，避免影响正常交互。
+    return
+  } finally {
+    const activeController = videoPollingControllers.get(nodeId)
+    if (activeController?.signal === signal) {
+      videoPollingControllers.delete(nodeId)
     }
   }
 }
 
-function wait(ms: number) {
+function wait(ms: number, signal?: AbortSignal) {
   return new Promise<void>((resolve) => {
-    window.setTimeout(resolve, ms)
+    const timer = window.setTimeout(() => {
+      if (signal) {
+        signal.removeEventListener('abort', handleAbort)
+      }
+      resolve()
+    }, ms)
+
+    const handleAbort = () => {
+      window.clearTimeout(timer)
+      resolve()
+    }
+
+    if (signal) {
+      if (signal.aborted) {
+        handleAbort()
+        return
+      }
+
+      signal.addEventListener('abort', handleAbort, { once: true })
+    }
   })
 }
 
@@ -802,6 +865,10 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
 
   deleteSelectedElements: () => {
     const { selectedNodeId, selectedEdgeId } = get()
+    if (selectedNodeId) {
+      clearPollingController(selectedNodeId)
+    }
+
     const nextNodes = selectedNodeId ? get().nodes.filter((node) => node.id !== selectedNodeId) : get().nodes
     const nextEdges = get().edges.filter((edge) => edge.id !== selectedEdgeId && edge.source !== selectedNodeId && edge.target !== selectedNodeId)
     set({
@@ -844,19 +911,6 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
 
     const relationType = getConnectionRelation(sourceNode.type, targetNodeType)
     if (!relationType) {
-      return
-    }
-
-    // For reference-image connections, check if target already has one
-    const alreadyHasReferenceImage =
-      relationType === 'reference-image' &&
-      get().edges.some(
-        (edge) =>
-          edge.target === newNode.id &&
-          edge.data?.relationType === 'reference-image',
-      )
-
-    if (alreadyHasReferenceImage) {
       return
     }
 
@@ -971,6 +1025,10 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     }
 
     if (node.type === CANVAS_NODE_TYPES.image) {
+      clearPollingController(nodeId)
+      const imagePollingController = new AbortController()
+      imagePollingControllers.set(nodeId, imagePollingController)
+
       get().updateNodeData(nodeId, {
         status: 'queued',
         progress: 0,
@@ -1009,10 +1067,11 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
       })
 
       if (response.status === 'failed') {
+        imagePollingControllers.delete(nodeId)
         return
       }
 
-      await pollImageGeneration(response.id, nodeId)
+      await pollImageGeneration(response.id, nodeId, imagePollingController.signal)
       return
     }
 
@@ -1161,6 +1220,10 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
       errorMessage: undefined,
     })
 
+    clearPollingController(nodeId)
+    const videoPollingController = new AbortController()
+    videoPollingControllers.set(nodeId, videoPollingController)
+
     const response = (await createVideoGeneration({
       model: node.data.model,
       prompt: normalizedPrompt,
@@ -1182,9 +1245,10 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     })
 
     if (response.status === 'failed') {
+      videoPollingControllers.delete(nodeId)
       return
     }
 
-    await pollVideoGeneration(response.id, nodeId)
+    await pollVideoGeneration(response.id, nodeId, videoPollingController.signal)
   },
 }))

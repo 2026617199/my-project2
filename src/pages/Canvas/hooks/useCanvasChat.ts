@@ -56,6 +56,7 @@ export function useCanvasChat() {
 
   const isDrawerOpenRef = useRef(isDrawerOpen)
   const activeSessionIdRef = useRef(activeSessionId)
+  const streamAbortControllerRef = useRef<AbortController | null>(null)
 
   const activeModel = useMemo(() => {
     return CHAT_TEXT_MODELS[0] ?? { id: 0, name: 'DeepSeek V3.2', model: 'deepseek-v3.2', platform: 'deepseek', platformId: 17 }
@@ -144,6 +145,10 @@ export function useCanvasChat() {
   }, [hasMoreMessages, isLoadingMessages, loadMessages, messagePage])
 
   const clearHistory = useCallback(async () => {
+    // 清理历史前中断正在进行的流式请求，避免无效网络占用。
+    streamAbortControllerRef.current?.abort()
+    streamAbortControllerRef.current = null
+
     await clearChatHistory()
     setSessions([])
     setActiveSessionId(null)
@@ -179,6 +184,11 @@ export function useCanvasChat() {
       setIsSending(true)
       setLastError(null)
 
+      // 启动新请求前先取消旧请求，保证同一时刻仅有一个流在消费。
+      streamAbortControllerRef.current?.abort()
+      const streamAbortController = new AbortController()
+      streamAbortControllerRef.current = streamAbortController
+
       const userMessage = createLocalMessage('user', trimmed)
       const requestMessages = [...session.messages, userMessage].map(toAnthropicMessage)
       const requestPayload: AnthropicGenerationRequest = {
@@ -206,7 +216,7 @@ export function useCanvasChat() {
           setMessages((prev) => [...prev, assistantDraft])
         }
 
-        const streamResponse = await createMessagesStream(requestPayload)
+        const streamResponse = await createMessagesStream(requestPayload, streamAbortController.signal)
         const streamResult = await consumeAnthropicSSE(streamResponse, {
           onText: (chunk) => {
             if (!chunk || activeSessionIdRef.current !== currentSessionId) {
@@ -262,9 +272,16 @@ export function useCanvasChat() {
           setHasUnread(true)
         }
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return
+        }
+
         const reason = error instanceof Error ? error.message : '发送失败，请稍后重试'
         setLastError(reason)
       } finally {
+        if (streamAbortControllerRef.current === streamAbortController) {
+          streamAbortControllerRef.current = null
+        }
         setIsSending(false)
       }
     },
@@ -300,6 +317,14 @@ export function useCanvasChat() {
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [closeDrawer, isDrawerOpen])
+
+  useEffect(() => {
+    // 组件卸载时取消流式请求，防止 reader 在后台继续占用资源。
+    return () => {
+      streamAbortControllerRef.current?.abort()
+      streamAbortControllerRef.current = null
+    }
+  }, [])
 
   return {
     activeModel,

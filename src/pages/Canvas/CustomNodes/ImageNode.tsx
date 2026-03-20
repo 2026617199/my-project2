@@ -20,6 +20,8 @@ import {
 } from '@ant-design/icons'
 
 import { NodeShell, PreviewSection } from './shared'
+import { useTransientToolbarAction } from './hooks/useTransientToolbarAction'
+import { validateImageFile } from './utils'
 
 import CloudButton from '@/components/CloudButton'
 import CloudSelect from '@/components/CloudSelect'
@@ -51,14 +53,15 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
     const [uploadError, setUploadError] = useState<string | undefined>(undefined)
     const [isReferenceUploadLoading, setIsReferenceUploadLoading] = useState(false)
     const [referenceUploadError, setReferenceUploadError] = useState<string | undefined>(undefined)
-    const [activeToolbarAction, setActiveToolbarAction] = useState<ActionToolbarItem['key'] | null>(
-        null,
-    )
     const [isImageZoomed, setIsImageZoomed] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const referenceFileInputRef = useRef<HTMLInputElement>(null)
-    const toolbarActionTimerRef = useRef<number | null>(null)
     const promptCacheRef = useRef(data.prompt ?? '')
+    const {
+        activeAction: activeToolbarAction,
+        trigger: triggerToolbarAction,
+        clearTimer: clearToolbarActionTimer,
+    } = useTransientToolbarAction()
 
     const modelOptions = useMemo(
         () => IMAGE_MODELS.map((item) => ({ label: item.name, value: item.model })),
@@ -104,22 +107,6 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
             handlePatch({ prompt: nextPrompt })
         }
     }, [data.prompt, editor, handlePatch])
-
-    // 验证文件格式和大小
-    const validateFile = (file: File): { valid: boolean; error?: string } => {
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-        const maxSize = 10 * 1024 * 1024 // 10MB
-
-        if (!allowedTypes.includes(file.type)) {
-            return { valid: false, error: '仅支持 JPEG、PNG、WebP、GIF 格式的图片' }
-        }
-
-        if (file.size > maxSize) {
-            return { valid: false, error: '图片大小不能超过 10MB' }
-        }
-
-        return { valid: true }
-    }
 
     // 处理文件上传
     const uploadImageFile = useCallback(
@@ -209,7 +196,7 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
             if (!files || files.length === 0) return
 
             const file = files[0]
-            const validation = validateFile(file)
+            const validation = validateImageFile(file)
 
             if (!validation.valid) {
                 setUploadError(validation.error)
@@ -234,7 +221,7 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
                 return
             }
 
-            const validation = validateFile(file)
+            const validation = validateImageFile(file)
             if (!validation.valid) {
                 setReferenceUploadError(validation.error)
                 message.error(validation.error)
@@ -296,18 +283,11 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
     )
 
     const showActionFeedback = useCallback((action: ActionToolbarItem['key'], label: string) => {
-        setActiveToolbarAction(action)
-
-        if (toolbarActionTimerRef.current) {
-            window.clearTimeout(toolbarActionTimerRef.current)
-        }
-
-        toolbarActionTimerRef.current = window.setTimeout(() => {
-            setActiveToolbarAction((prev) => (prev === action ? null : prev))
-        }, 320)
+        // 触发短暂激活态，提升按钮反馈一致性。
+        triggerToolbarAction(action)
 
         message.info(`${label}事件已触发（占位功能）`)
-    }, [])
+    }, [triggerToolbarAction])
 
     const toggleImageZoom = useCallback(() => {
         if (!previewImageUrl) {
@@ -320,16 +300,9 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
 
     const handleToolbarAction = useCallback(
         (item: ActionToolbarItem) => {
-            setActiveToolbarAction(item.key)
-
             if (item.key === 'fullscreen') {
                 toggleImageZoom()
-                if (toolbarActionTimerRef.current) {
-                    window.clearTimeout(toolbarActionTimerRef.current)
-                }
-                toolbarActionTimerRef.current = window.setTimeout(() => {
-                    setActiveToolbarAction((prev) => (prev === 'fullscreen' ? null : prev))
-                }, 320)
+                triggerToolbarAction('fullscreen')
                 return
             }
 
@@ -371,12 +344,11 @@ function ImageNode({ id, data, selected }: NodeProps<ImageCanvasNode>) {
     }, [data.prompt, editor])
 
     useEffect(() => {
+        // 双保险：组件生命周期结束时确保无残留计时器。
         return () => {
-            if (toolbarActionTimerRef.current) {
-                window.clearTimeout(toolbarActionTimerRef.current)
-            }
+            clearToolbarActionTimer()
         }
-    }, [])
+    }, [clearToolbarActionTimer])
 
     useEffect(() => {
         const patch: Partial<ImageNodeData> = {}
