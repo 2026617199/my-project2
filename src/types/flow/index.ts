@@ -49,12 +49,23 @@ export interface VideoGenerationNode {
   [key: string]: any; // React Flow 约束兼容
 }
 
+/**
+ * 文本便签节点数据结构
+ * 用于画布中的自由文本记录
+ * 注：width/height 已移至 Node 级别，由 React Flow 管理
+ */
+export interface NoteNodeData {
+  content: string; // 文本内容（支持 Markdown 语法）
+  inputHandleId?: string; // 输入 Handle 标识（默认 input）
+  outputHandleId?: string; // 输出 Handle 标识（默认 output）
+  isEditing?: boolean; // 是否处于编辑状态
+  createdAt?: number; // 创建时间戳
+  [key: string]: any; // React Flow 约束兼容
+}
+
 // ==================== 辅助类型 ====================
 
-/**
- * 构建状态类型
- */
-export type BuildStatus = "idle" | "pending" | "success" | "failed";
+
 
 /**
  * API 类型定义（通用节点类型）
@@ -72,6 +83,12 @@ export interface EdgeDataType {
   [key: string]: any; // React Flow 约束兼容
 }
 
+
+
+/**
+ * 构建状态类型
+ */
+export type BuildStatus = "idle" | "pending" | "success" | "failed";
 /**
  * 节点操作数据结构
  * 用于在画布上表示和操作节点的元数据
@@ -99,14 +116,17 @@ export interface FlowStyleType {
 }
 
 
-
+// 第一个泛型参数是定义节点 `data` 属性的类型，即节点携带的业务数据
+// 第二个泛型参数是 节点的类型标识符
 export type TextNodeType = Node<TextGenerationNode, "textNode">;
 export type ImageNodeType = Node<ImageGenerationNode, "imageNode">;
 export type VideoNodeType = Node<VideoGenerationNode, "videoNode">;
+// 节点里面的 data 结构是 NoteNodeData
+export type NoteNodeType = Node<NoteNodeData, "noteNode">;
 // React Flow 默认的节点类型
 export type DefaultNodeType = Node<any, "default">;
 
-export type AllNodeType = TextNodeType | ImageNodeType | VideoNodeType | DefaultNodeType;
+export type AllNodeType = TextNodeType | ImageNodeType | VideoNodeType | NoteNodeType | DefaultNodeType;
 export type EdgeType = Edge<EdgeDataType, "default">;
 
 // ==================== 流类型 ====================

@@ -5,59 +5,33 @@ import {
     Background,
     Controls,
     MiniMap,
-    useNodesState,
-    useEdgesState,
-    addEdge,
-    type Connection,
 } from '@xyflow/react'
 
+import { NoteNode } from './CustomNodes/NoteNode'
 import { FloatingSidebar } from './components/FloatingSidebar'
+import { useCanvasFlowStore } from '@/store/canvasFlowStore'
 
 import type {
     AllNodeType,
     EdgeType
 } from "@/types/flow";
 
-// 初始节点数据
-const initialNodes: AllNodeType[] = [
-    {
-        id: '1',
-        position: { x: 100, y: 100 },
-        data: { label: '节点 1' },
-        type: 'default',
-    },
-    {
-        id: '2',
-        position: { x: 400, y: 100 },
-        data: { label: '节点 2' },
-        type: 'default',
-    },
-]
-
-// 初始边数据
-const initialEdges: EdgeType[] = [
-    {
-        id: 'e1-2',
-        source: '1',
-        target: '2',
-    },
-]
+// 自定义节点映射：以模块级常量定义，避免高频渲染时重复创建对象。
+const nodeTypes = {
+    noteNode: NoteNode,
+}
 
 // 画布流组件：仅负责 ReactFlow 相关状态与渲染。
 const CanvasFlow = () => {
-    // 节点状态
-    const [nodes, , onNodesChange] = useNodesState(initialNodes)
-    // 边状态
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+    // 通过 zustand 读取图状态，避免业务动作散落在多个组件。
+    const nodes = useCanvasFlowStore((state) => state.nodes)
+    const edges = useCanvasFlowStore((state) => state.edges)
+    const onNodesChange = useCanvasFlowStore((state) => state.onNodesChange)
+    const onEdgesChange = useCanvasFlowStore((state) => state.onEdgesChange)
+    const onConnect = useCanvasFlowStore((state) => state.onConnect)
 
-    // 处理连接事件
-    const onConnect = useCallback(
-        (connection: Connection) => {
-            setEdges((eds) => addEdge(connection, eds))
-        },
-        [setEdges]
-    )
-
+    console.log("CanvasFlow 重新渲染")
+    // 说明：连接事件由 store action 处理，这里不再创建局部回调。
     return (
         <ReactFlow<AllNodeType, EdgeType>
             nodes={nodes}
@@ -65,6 +39,8 @@ const CanvasFlow = () => {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            nodesDraggable
             fitView
         >
             <Background />
@@ -76,10 +52,15 @@ const CanvasFlow = () => {
 
 // 外部组件 - 提供 ReactFlowProvider
 const CanvasPage = () => {
-    // 侧边栏动作占位：放在页面层，避免被画布节点高频状态更新牵连。
+    const addNoteNode = useCanvasFlowStore((state) => state.addNoteNode)
+
+    // 侧边栏动作处理：保留页面层调度，避免与高频画布渲染耦合。
     const handleSidebarAction = useCallback((actionId: string) => {
-        console.info(`[CanvasSidebar] TODO: implement action -> ${actionId}`)
-    }, [])
+        if (actionId === 'create') {
+            addNoteNode()
+            return
+        }
+    }, [addNoteNode])
 
     return (
         <ReactFlowProvider>
