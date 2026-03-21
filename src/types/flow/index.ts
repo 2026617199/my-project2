@@ -1,6 +1,6 @@
 import type { Edge, Node, ReactFlowJsonObject } from "@xyflow/react";
 import type { ChatMessage } from "../ai";
-import { GenerationStatus } from "@/components/constants/enum";
+import { GenerationStatus } from "@/constants/enum";
 
 // ==================== 核心数据模型 ====================
 
@@ -94,6 +94,7 @@ export interface VideoGenerationNode {
  * 用于画布中的自由文本记录
  * 注：width/height 已移至 Node 级别，由 React Flow 管理
  */
+// 还需要什么字段，就采用 运行时解析的动态数据 的方式添加（可以避免双写一致的问题）
 export interface NoteNodeData {
   content: string; // 文本内容（支持 Markdown 语法）
   inputHandleId?: string; // 输入 Handle 标识（默认 input）
