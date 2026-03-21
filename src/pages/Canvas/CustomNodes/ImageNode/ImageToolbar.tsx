@@ -11,7 +11,9 @@ import {
 import { useMemo, useState } from 'react'
 import Lightbox from 'yet-another-react-lightbox'
 // import Captions from 'yet-another-react-lightbox/plugins/captions'
+import Download from 'yet-another-react-lightbox/plugins/download'
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen'
+import Share from 'yet-another-react-lightbox/plugins/share'
 import Slideshow from 'yet-another-react-lightbox/plugins/slideshow'
 // import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
@@ -106,7 +108,7 @@ export const ImageToolbar = ({ data, selected, zoom }: ImageToolbarProps) => {
                     setIsLightboxOpen(false)
                 }}
                 slides={imageUrls.filter((url): url is string => !!url).map((url) => ({ src: url }))}
-                plugins={[Fullscreen, Slideshow, Zoom]}
+                plugins={[Fullscreen, Slideshow, Zoom, Share, Download]}
                 zoom={{ maxZoomPixelRatio: 4, zoomInMultiplier: 2 }}
                 controller={{ closeOnBackdropClick: true }}
             />
