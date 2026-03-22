@@ -11,7 +11,7 @@
 
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "baseUrl": ".",
+    "tsconfigRootDir": ".",
     "paths": {
       "@/*": ["src/*"]
     },
