@@ -1,55 +1,124 @@
-import { IconCopy, IconTrash, IconRefresh } from '@tabler/icons-react'
+import {
+    IconAspectRatio,
+    IconBrush,
+    IconCrop,
+    IconDownload,
+    IconEraser,
+    IconSparkles,
+    IconZoomIn,
+} from '@tabler/icons-react'
+import { useMemo, useState } from 'react'
+import Lightbox from 'yet-another-react-lightbox'
+// import Captions from 'yet-another-react-lightbox/plugins/captions'
+import Download from 'yet-another-react-lightbox/plugins/download'
+import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen'
+import Share from 'yet-another-react-lightbox/plugins/share'
+import Slideshow from 'yet-another-react-lightbox/plugins/slideshow'
+// import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails'
+import Zoom from 'yet-another-react-lightbox/plugins/zoom'
+import { toast } from 'sonner'
+
+import type { VideoGenerationNode } from '@/types/flow'
 
 type VideoToolbarProps = {
-    onDuplicate: () => void
-    onDelete: () => void
-    onRetry?: () => void
+    data: VideoGenerationNode
+    selected: boolean
+    zoom: number
 }
+
+type ActionKey = 'repaint' | 'erase' | 'enhance' | 'outpaint' | 'crop' | 'download' | 'preview'
 
 /**
  * 视频节点工具栏组件
  * 职责：
- * - 提供复制、删除、重新生成等操作按钮
- * - 仅在节点选中时显示
+ * - 提供重绘、擦除、增强、扩图、裁剪、下载、放大查看等操作按钮
+ * - 处理工具栏按钮交互反馈
+ * - 基于 yet-another-react-lightbox 提供放大查看能力
  */
 export const VideoToolbar = ({
-    onDuplicate,
-    onDelete,
-    onRetry,
+    data,
+    selected,
+    zoom,
 }: VideoToolbarProps) => {
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+
+    // 对齐图片工具栏的数据组织方式，统一使用数组映射给 Lightbox
+    const videoUrls = data.result?.data?.map((item) => item.url) ?? []
+    const currentVideoUrl = videoUrls[0]
+
+    // 占位使用 zoom 变量，保持与图片节点同构的 props 设计
+    void zoom
+
+    const toolbarActions = useMemo(() => {
+        return [
+            { key: 'repaint' as const, label: '重绘', icon: IconBrush },
+            { key: 'erase' as const, label: '擦除', icon: IconEraser },
+            { key: 'enhance' as const, label: '增强', icon: IconSparkles },
+            { key: 'outpaint' as const, label: '扩图', icon: IconAspectRatio },
+            { key: 'crop' as const, label: '裁剪', icon: IconCrop },
+            { key: 'download' as const, label: '下载', icon: IconDownload },
+            { key: 'preview' as const, label: '放大查看', icon: IconZoomIn },
+        ]
+    }, [])
+
+    const handleAction = (actionKey: ActionKey) => {
+        if (actionKey === 'preview') {
+            if (!currentVideoUrl) {
+                toast.info('暂无可预览视频')
+                return
+            }
+
+            setIsLightboxOpen(true)
+            return
+        }
+
+        // 其余功能仅保留占位交互框架，业务逻辑后续接入
+        toast.info('功能开发中...')
+    }
+
+    const isPreviewActive = isLightboxOpen
+
     return (
-        <div className="noflow nopan nodrag absolute -top-12 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg border bg-background px-2 py-1 shadow-sm">
-            {onRetry && (
-                <button
-                    type="button"
-                    title="重新生成"
-                    aria-label="重新生成"
-                    className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                    onClick={onRetry}
-                >
-                    <IconRefresh size={16} />
-                </button>
-            )}
-
-            <button
-                type="button"
-                title="复制节点"
-                aria-label="复制节点"
-                className="rounded-md p1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                onClick={onDuplicate}
+        <>
+            <div
+                className={`nodrag nopan nowheel inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 shadow-md transition-all duration-200 ${selected
+                    ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
+                    : 'pointer-events-none -translate-y-2 scale-95 opacity-0'
+                    }`}
             >
-                <IconCopy size={16} />
-            </button>
+                {toolbarActions.map((item) => {
+                    const Icon = item.icon
+                    const isActive = item.key === 'preview' ? isPreviewActive : false
 
-            <button
-                type="button"
-                title="删除节点"
-                aria-label="删除节点"
-                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive"
-                onClick={onDelete}
-            >
-                <IconTrash size={16} />
-            </button>
-        </div>
+                    return (
+                        <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => handleAction(item.key)}
+                            className={`nodrag nopan nowheel inline-flex h-8 items-center gap-1 rounded-lg border px-2 text-xs font-medium transition-colors ${isActive
+                                ? 'border-sky-300 bg-sky-50 text-sky-700'
+                                : 'border-transparent bg-white text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800 active:border-slate-300 active:bg-slate-100 active:text-slate-900'
+                                }`}
+                            title={item.label}
+                            aria-label={item.label}
+                        >
+                            <Icon size={24} stroke={1.8} />
+                            <span>{item.label}</span>
+                        </button>
+                    )
+                })}
+            </div>
+
+            <Lightbox
+                open={isLightboxOpen}
+                close={() => {
+                    setIsLightboxOpen(false)
+                }}
+                slides={videoUrls.filter((url): url is string => !!url).map((url) => ({ src: url }))}
+                plugins={[Fullscreen, Slideshow, Zoom, Share, Download]}
+                zoom={{ maxZoomPixelRatio: 4, zoomInMultiplier: 2 }}
+                controller={{ closeOnBackdropClick: true }}
+            />
+        </>
     )
 }

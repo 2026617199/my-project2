@@ -1,4 +1,4 @@
-import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react'
+import { Handle, NodeResizer, NodeToolbar, Position, useViewport, type NodeProps } from '@xyflow/react'
 import { useRef } from 'react'
 
 import { useCanvasFlowStore } from '@/store/canvasFlowStore'
@@ -26,6 +26,7 @@ export const VideoNode = ({
     const duplicateNode = useCanvasFlowStore((state) => state.duplicateNode)
     const deleteNode = useCanvasFlowStore((state) => state.deleteNode)
     const resizeNode = useCanvasFlowStore((state) => state.resizeNode)
+    const { zoom } = useViewport()
 
     const latestSizeRef = useRef<{ width: number; height: number } | null>(null)
 
@@ -70,13 +71,14 @@ export const VideoNode = ({
                 }}
                 className="relative flex h-full w-full flex-col gap-2 rounded-xl border bg-card p-2 shadow-sm transition-transform duration-200 ease-in-out"
             >
-                {/* 选中时显示工具栏 */}
-                {selected ? (
+                {/* 选中时显示工具栏（与图片节点一致，使用 NodeToolbar 管理定位） */}
+                <NodeToolbar isVisible={selected} position={Position.Top} offset={10 * zoom}>
                     <VideoToolbar
-                        onDuplicate={() => duplicateNode(id)}
-                        onDelete={() => deleteNode(id)}
+                        data={data}
+                        selected={selected}
+                        zoom={zoom}
                     />
-                ) : null}
+                </NodeToolbar>
 
                 {/* 视频内容区 */}
                 <div className="flex h-full w-full overflow-hidden rounded-md bg-muted/10">
