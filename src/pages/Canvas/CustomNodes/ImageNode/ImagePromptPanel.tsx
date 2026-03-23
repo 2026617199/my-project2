@@ -22,7 +22,7 @@ import { GenerationStatus } from '@/constants/enum'
 import useMessage from '@/hooks/useMessage'
 import { cn } from '@/lib/utils'
 import { useCanvasFlowStore } from '@/store/canvasFlowStore'
-import type { ImageGenerationNode } from '@/types/flow'
+import type { ImageGenerationNode, NoteNodeData } from '@/types/flow'
 
 import { COMMAND_MOCK, MENTION_MOCK, STYLE_TEMPLATE_MOCK } from './mock'
 
@@ -274,6 +274,27 @@ export const ImagePromptPanel = ({ nodeId }: { nodeId: string }) => {
         return urls
     }, [edges, nodes, nodeId])
 
+    // 收集父级便签内容：按入边顺序去重后提取 content
+    const parentNoteContents = useMemo(() => {
+        const orderedParentIds: string[] = []
+        const seenParentIds = new Set<string>()
+
+        edges.forEach((edge) => {
+            if (edge.target !== nodeId || seenParentIds.has(edge.source)) {
+                return
+            }
+
+            seenParentIds.add(edge.source)
+            orderedParentIds.push(edge.source)
+        })
+
+        return orderedParentIds
+            .map((parentId) => nodes.find((node) => node.id === parentId))
+            .filter((node) => node?.type === 'noteNode')
+            .map((node) => (node?.data as NoteNodeData).content?.trim())
+            .filter((content) => Boolean(content)) as string[]
+    }, [edges, nodes, nodeId])
+
     // 参考图列表：上传图片 + 父节点结果（不去重，默认顺序）
     const referenceImageUrls = useMemo(() => {
         return [...uploadedUrls, ...parentImageUrls]
@@ -435,15 +456,19 @@ export const ImagePromptPanel = ({ nodeId }: { nodeId: string }) => {
     // 点击生成：创建任务并启动轮询
     const handleGenerate = async () => {
         const promptText = editor?.getText().trim() ?? ''
+        const mergedPrompt = [...parentNoteContents, promptText]
+            .map((content) => content.trim())
+            .filter((content) => content.length > 0)
+            .join(' ')
 
-        if (!promptText) {
+        if (!mergedPrompt) {
             warning('请输入提示词')
             return
         }
 
         const payload: any = {
             model,
-            prompt: promptText,
+            prompt: mergedPrompt,
             size: ratio,
             resolution,
             n: 1,
