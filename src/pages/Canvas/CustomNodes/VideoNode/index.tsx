@@ -1,5 +1,5 @@
 import { NodeResizer, NodeToolbar, Position, useViewport, type NodeProps } from '@xyflow/react'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 
 import { ButtonHandle } from '@/components/button-handle'
 import { useCanvasFlowStore } from '@/store/canvasFlowStore'
@@ -24,12 +24,11 @@ export const VideoNode = ({
     height
 }: NodeProps<VideoNodeType>) => {
     // 从 store 中获取操作方法
-    const duplicateNode = useCanvasFlowStore((state) => state.duplicateNode)
-    const deleteNode = useCanvasFlowStore((state) => state.deleteNode)
     const resizeNode = useCanvasFlowStore((state) => state.resizeNode)
     const { zoom } = useViewport()
 
     const latestSizeRef = useRef<{ width: number; height: number } | null>(null)
+    const [isHovered, setIsHovered] = useState(false)
 
     console.log('视频节点重新渲染', id)
 
@@ -54,6 +53,7 @@ export const VideoNode = ({
                 type="target"
                 position={Position.Left}
                 id="input"
+                visible={selected || isHovered}
                 className="h-3! w-3! border-2! border-background! bg-primary!"
             />
 
@@ -62,6 +62,7 @@ export const VideoNode = ({
                 type="source"
                 position={Position.Right}
                 id="output"
+                visible={selected || isHovered}
                 className="h-3! w-3! border-2! border-background! bg-primary!"
             />
 
@@ -71,6 +72,12 @@ export const VideoNode = ({
                     height,
                 }}
                 className="relative flex h-full w-full flex-col gap-2 rounded-xl border bg-card p-2 shadow-sm transition-transform duration-200 ease-in-out"
+                onMouseEnter={() => {
+                    setIsHovered(true)
+                }}
+                onMouseLeave={() => {
+                    setIsHovered(false)
+                }}
             >
                 {/* 选中时显示工具栏（与图片节点一致，使用 NodeToolbar 管理定位） */}
                 <NodeToolbar isVisible={selected} position={Position.Top} offset={10 * zoom}>

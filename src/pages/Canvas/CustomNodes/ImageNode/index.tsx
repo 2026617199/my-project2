@@ -1,5 +1,5 @@
 import { NodeResizer, NodeToolbar, Position, useViewport, type NodeProps } from '@xyflow/react'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 
 import { ButtonHandle } from '@/components/button-handle'
 import { useCanvasFlowStore } from '@/store/canvasFlowStore'
@@ -29,6 +29,7 @@ export const ImageNode = ({
     const { zoom } = useViewport()
 
     const latestSizeRef = useRef<{ width: number; height: number } | null>(null)
+    const [isHovered, setIsHovered] = useState(false)
 
     console.log('图片节点重新渲染', id)
 
@@ -55,6 +56,7 @@ export const ImageNode = ({
                 type="target"
                 position={Position.Left}
                 id="input"
+                visible={selected || isHovered}
                 className="h-3! w-3! border-2! border-background! bg-primary!"
             />
 
@@ -63,6 +65,7 @@ export const ImageNode = ({
                 type="source"
                 position={Position.Right}
                 id="output"
+                visible={selected || isHovered}
                 className="h-3! w-3! border-2! border-background! bg-primary!"
             />
 
@@ -94,6 +97,12 @@ export const ImageNode = ({
                     height,
                 }}
                 className="relative flex h-full w-full flex-col gap-2 rounded-xl border bg-card p-2 shadow-sm transition-transform duration-200 ease-in-out"
+                onMouseEnter={() => {
+                    setIsHovered(true)
+                }}
+                onMouseLeave={() => {
+                    setIsHovered(false)
+                }}
             >
                 {/* 图片内容区 */}
                 <div className="flex h-full w-full overflow-hidden rounded-md bg-muted/10">

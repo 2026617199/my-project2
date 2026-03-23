@@ -1,4 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { Position, type HandleProps } from "@xyflow/react";
 import { BaseHandle } from "@/components/base-handle";
 
@@ -15,7 +19,8 @@ const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
 export function ButtonHandle({
-  showButton = true,
+  showButton = false,
+  visible,
   position = Position.Bottom,
   followAreaSize = 96,
   buttonSize = 28,
@@ -23,76 +28,51 @@ export function ButtonHandle({
   ...props
 }: HandleProps & {
   showButton?: boolean;
+    visible?: boolean;
   followAreaSize?: number;
   buttonSize?: number;
 }) {
+  const shouldShow = visible ?? showButton;
   const wrapperClassName = wrapperClassNames[position || Position.Bottom];
   const vertical = position === Position.Top || position === Position.Bottom;
   const followAreaRef = useRef<HTMLDivElement | null>(null);
-  const rafIdRef = useRef<number | null>(null);
-  const [cursorPosition, setCursorPosition] = useState(() => ({
-    x: (followAreaSize - buttonSize) / 2,
-    y: (followAreaSize - buttonSize) / 2,
-  }));
 
-  // 当跟随区域尺寸变化时，重置到区域中心，避免按钮漂移到无效位置。
-  useEffect(() => {
-    setCursorPosition({
-      x: (followAreaSize - buttonSize) / 2,
-      y: (followAreaSize - buttonSize) / 2,
-    });
-  }, [buttonSize, followAreaSize]);
-
-  // 使用 rAF 合并高频 pointer move 更新，降低渲染抖动。
-  const updatePosition = useCallback(
-    (clientX: number, clientY: number) => {
-      const area = followAreaRef.current;
-      if (!area) {
-        return;
-      }
-
-      const rect = area.getBoundingClientRect();
-      const maxX = Math.max(rect.width - buttonSize, 0);
-      const maxY = Math.max(rect.height - buttonSize, 0);
-
-      const nextX = clamp(clientX - rect.left - buttonSize / 2, 0, maxX);
-      const nextY = clamp(clientY - rect.top - buttonSize / 2, 0, maxY);
-
-      setCursorPosition((prev) => {
-        if (prev.x === nextX && prev.y === nextY) {
-          return prev;
-        }
-        return { x: nextX, y: nextY };
-      });
-    },
-    [buttonSize],
-  );
-
+  // 用 CSS 变量更新按钮位置，避免 React state 带来的重渲染。
   const handlePointerMove = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const area = event.currentTarget;
+      const rect = area.getBoundingClientRect();
+      const halfButton = buttonSize / 2;
 
-      rafIdRef.current = requestAnimationFrame(() => {
-        updatePosition(event.clientX, event.clientY);
-      });
+      const centerX = clamp(
+        event.clientX - rect.left,
+        halfButton,
+        followAreaSize - halfButton,
+      );
+      const centerY = clamp(
+        event.clientY - rect.top,
+        halfButton,
+        followAreaSize - halfButton,
+      );
+
+      area.style.setProperty("--btn-x", `${centerX}px`);
+      area.style.setProperty("--btn-y", `${centerY}px`);
     },
-    [updatePosition],
+    [buttonSize, followAreaSize],
   );
 
-  useEffect(
-    () => () => {
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-      }
-    },
-    [],
-  );
+  // 鼠标离开区域后清除变量，按钮回到默认中心（50%/50%）。
+  const handlePointerLeave = useCallback(() => {
+    const area = followAreaRef.current;
+    if (area) {
+      area.style.removeProperty("--btn-x");
+      area.style.removeProperty("--btn-y");
+    }
+  }, []);
 
   return (
     <BaseHandle position={position} id={props.id} {...props}>
-      {showButton && (
+      {shouldShow && (
         <div
           className={`absolute flex items-center ${wrapperClassName} pointer-events-none`}
         >
@@ -101,20 +81,22 @@ export function ButtonHandle({
           />
           <div
             ref={followAreaRef}
-            className="relative nodrag nopan pointer-events-auto"
+            className="relative nodrag nopan pointer-events-auto rounded-md border border-pink-300/80 bg-pink-200/45"
             style={{
               width: followAreaSize,
               height: followAreaSize,
             }}
             onPointerMove={handlePointerMove}
+            onPointerLeave={handlePointerLeave}
           >
             <div
               className="absolute flex items-center justify-center"
               style={{
                 width: buttonSize,
                 height: buttonSize,
-                transform: `translate3d(${cursorPosition.x}px, ${cursorPosition.y}px, 0)`,
-                willChange: "transform",
+                left: "var(--btn-x, 50%)",
+                top: "var(--btn-y, 50%)",
+                transform: "translate(-50%, -50%)",
               }}
             >
               <div className="nodrag nopan pointer-events-auto">
