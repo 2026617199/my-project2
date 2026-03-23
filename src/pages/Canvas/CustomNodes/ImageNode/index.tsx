@@ -78,8 +78,8 @@ export const ImageNode = ({
                     setIsHovered(false)
                 }}
             >
-                {/* 图片内容区 */}
-                <div className="flex h-full w-full overflow-hidden rounded-md bg-muted/10">
+                {/* 图片内容区：提供明确高度基准，避免 h-full + absolute 链路在自适应场景下塌陷 */}
+                <div className="relative flex w-full min-h-62.5 aspect-7/5 overflow-hidden rounded-md bg-muted/10">
                     <ImageContent data={data} />
                 </div>
             </div>
