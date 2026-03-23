@@ -105,6 +105,21 @@ export interface NoteNodeData {
   [key: string]: any; // React Flow 约束兼容
 }
 
+/**
+ * 智能体节点数据结构
+ * 仅保留 NoteGenerationRequest 的必填字段
+ */
+export interface AgentNode {
+  model: string; // 模型名称
+  agentPresetId?: string; // 智能体模板标识
+  messages: {
+    role: "system" | "user" | "assistant" | "tool"; // 消息角色
+    content: string; // 消息内容
+    name?: string; // 可选：消息发送者名称
+  }[]; // 消息列表
+  [key: string]: any; // React Flow 约束兼容
+}
+
 // ==================== 辅助类型 ====================
 
 
@@ -165,10 +180,11 @@ export type ImageNodeType = Node<ImageGenerationNode, "imageNode">;
 export type VideoNodeType = Node<VideoGenerationNode, "videoNode">;
 // 节点里面的 data 结构是 NoteNodeData
 export type NoteNodeType = Node<NoteNodeData, "noteNode">;
+export type AgentNodeType = Node<AgentNode, "agentNode">;
 // React Flow 默认的节点类型
 export type DefaultNodeType = Node<any, "default">;
 
-export type AllNodeType = TextNodeType | ImageNodeType | VideoNodeType | NoteNodeType | DefaultNodeType;
+export type AllNodeType = TextNodeType | ImageNodeType | VideoNodeType | NoteNodeType | AgentNodeType | DefaultNodeType;
 export type EdgeType = Edge<EdgeDataType, "default">;
 
 // ==================== 流类型 ====================

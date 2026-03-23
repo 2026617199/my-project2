@@ -13,9 +13,11 @@ import {
 import { NoteNode } from './CustomNodes/NoteNode'
 import { ImageNode } from './CustomNodes/ImageNode'
 import { VideoNode } from './CustomNodes/VideoNode'
+import { AgentNode } from './CustomNodes/AgentNode'
 import { FloatingSidebar } from './components/FloatingSidebar'
 import { CanvasContextMenu, type CanvasNodeType } from './components/CanvasContextMenu'
 import { useCanvasFlowStore } from '@/store/canvasFlowStore'
+import type { AgentPresetId } from '@/constants/agent-presets'
 
 import type {
     AllNodeType,
@@ -26,12 +28,18 @@ import DevTools from './DevTools'
 /**
  * 自定义节点类型映射
  * 以模块级常量定义，避免高频渲染时重复创建对象
- * 支持三种节点类型：noteNode、imageNode、videoNode
+ * 支持四种节点类型：noteNode、imageNode、videoNode、agentNode
  */
 const nodeTypes = {
     noteNode: NoteNode,
     imageNode: ImageNode,
     videoNode: VideoNode,
+    agentNode: AgentNode,
+}
+
+const assistantActionToPresetId: Record<string, AgentPresetId> = {
+    'novel-to-script-agent': 'novel-to-script-agent',
+    'short-video-script-agent': 'short-video-script-agent',
 }
 
 // 画布流组件：仅负责 ReactFlow 相关状态与渲染。
@@ -185,6 +193,9 @@ const CanvasPage = () => {
                 addNode('video')
                 break
             default:
+                if (assistantActionToPresetId[actionId]) {
+                    addNode('agent', undefined, { agentPresetId: assistantActionToPresetId[actionId] })
+                }
                 break
         }
     }, [addNode])

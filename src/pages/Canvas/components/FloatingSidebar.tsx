@@ -49,6 +49,10 @@ const defaultItems: FloatingSidebarItem[] = [
         id: 'assistant',
         label: '智能助手',
         icon: <IconSparkles size={20} />,
+        children: [
+            { id: 'novel-to-script-agent', label: '小说转剧本智能助手' },
+            { id: 'short-video-script-agent', label: '爆款短视频脚本智能助手' },
+        ],
     },
     {
         id: 'layout',

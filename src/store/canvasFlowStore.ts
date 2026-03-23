@@ -9,14 +9,18 @@ import {
 import { create } from 'zustand'
 
 import { createImageGeneration, getImageTaskStatus } from '@/api/ai'
+import { getAgentPresetById, type AgentPresetId } from '@/constants/agent-presets'
 import type { AllNodeType, EdgeType, ImageGenerationNode } from '@/types/flow'
 import { GenerationStatus } from '@/constants/enum'
 
 /**
  * 节点类型标识符
  */
-type NodeType = 'note' | 'image' | 'video'
+type NodeType = 'note' | 'image' | 'video' | 'agent'
 type NodePosition = { x: number; y: number }
+type AddNodeOptions = {
+  agentPresetId?: AgentPresetId
+}
 
 /**
  * 基于最后一个节点计算新节点位置
@@ -37,7 +41,7 @@ type CanvasFlowState = {
   nodes: AllNodeType[]
   edges: EdgeType[]
   // 各类型节点的自增计数器
-  nodeIdCounters: { note: number; image: number; video: number }
+  nodeIdCounters: { note: number; image: number; video: number; agent: number }
 
   // === 基础流程事件 ===
   onNodesChange: (changes: NodeChange<AllNodeType>[]) => void
@@ -48,7 +52,7 @@ type CanvasFlowState = {
   /** 获取下一个指定类型的节点 ID（自增） */
   getNextNodeId: (nodeType: NodeType) => string
   /** 创建节点 */
-  addNode: (nodeType: NodeType, position?: NodePosition) => string
+  addNode: (nodeType: NodeType, position?: NodePosition, options?: AddNodeOptions) => string
   /** 更新便签编辑态 */
   setNoteNodeEditing: (nodeId: string, isEditing: boolean) => void
   /** 更新便签内容 */
@@ -213,13 +217,13 @@ const pollImageGeneration = async (
 export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
   nodes: [],
   edges: [],
-  nodeIdCounters: { note: 1, image: 1, video: 1 },
+  nodeIdCounters: { note: 1, image: 1, video: 1, agent: 1 },
 
   // ==================== 通用方法实现 ====================
 
   /**
    * 获取下一个指定类型的节点 ID
-   * @param nodeType 节点类型：'note' | 'image' | 'video'
+    * @param nodeType 节点类型：'note' | 'image' | 'video' | 'agent'
    * @returns 新的节点 ID，如 'note-3', 'image-1' 等
    */
   getNextNodeId: (nodeType: NodeType) => {
@@ -237,10 +241,11 @@ export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
   /**
    * 创建新节点（统一入口）
    */
-  addNode: (nodeType: NodeType, position?: NodePosition) => {
+  addNode: (nodeType: NodeType, position?: NodePosition, options?: AddNodeOptions) => {
     const nextId = get().getNextNodeId(nodeType)
     const currentNodes = get().nodes
     const nextPosition = position ?? getNextNodePosition(currentNodes)
+    const agentPreset = getAgentPresetById(options?.agentPresetId)
     let newNode: AllNodeType
 
     if (nodeType === 'note') {
@@ -272,6 +277,23 @@ export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
             type: 'image',
             data: [],
           },
+          createdAt: Date.now(),
+        },
+      }
+    } else if (nodeType === 'agent') {
+      newNode = {
+        id: nextId,
+        type: 'agentNode',
+        position: nextPosition,
+        data: {
+          model: agentPreset.model,
+          messages: [
+            {
+              role: 'system',
+              content: agentPreset.systemPrompt,
+            },
+          ],
+          agentPresetId: agentPreset.id,
           createdAt: Date.now(),
         },
       }
@@ -379,6 +401,8 @@ export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
       nodeType = 'image'
     } else if (currentNode.type === 'videoNode') {
       nodeType = 'video'
+    } else if (currentNode.type === 'agentNode') {
+      nodeType = 'agent'
     }
 
     const newId = get().getNextNodeId(nodeType)
