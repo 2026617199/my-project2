@@ -12,7 +12,7 @@ import { NoteToolbar } from './NoteToolbar'
 export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNodeType>) => {
     const setNoteNodeEditing = useCanvasFlowStore((state) => state.setNoteNodeEditing)
     const updateNoteNodeContent = useCanvasFlowStore((state) => state.updateNoteNodeContent)
-    const resizeNode = useCanvasFlowStore((state) => state.resizeNode)
+    const resizeNoteNode = useCanvasFlowStore((state) => state.resizeNoteNode)
     const duplicateNode = useCanvasFlowStore((state) => state.duplicateNode)
     const deleteNode = useCanvasFlowStore((state) => state.deleteNode)
 
@@ -32,7 +32,7 @@ export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNo
                 }}
                 onResizeEnd={(_, { width, height }) => {
                     const nextSize = latestSizeRef.current ?? { width, height }
-                    resizeNode(id, nextSize.width, nextSize.height)
+                    resizeNoteNode(id, nextSize.width, nextSize.height)
                     latestSizeRef.current = null
                 }}
             />

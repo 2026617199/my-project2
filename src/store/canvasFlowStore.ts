@@ -52,8 +52,8 @@ type CanvasFlowState = {
   setNoteNodeEditing: (nodeId: string, isEditing: boolean) => void
   /** 更新便签内容 */
   updateNoteNodeContent: (nodeId: string, content: string) => void
-  /** 调整节点尺寸 */
-  resizeNode: (nodeId: string, width: number, height: number) => void
+  /** 调整便签节点尺寸 */
+  resizeNoteNode: (nodeId: string, width: number, height: number) => void
   /** 复制节点 */
   duplicateNode: (nodeId: string) => void
   /** 删除节点及其关联边 */
@@ -67,12 +67,6 @@ type CanvasFlowState = {
 }
 
 // ==================== 初始图数据 ====================
-
-/**
- * 模拟图片 URL：使用 picsum.photos 公开服务
- * （生产环境应替换为真实生成的 URL）
- */
-const MOCK_IMAGE_URL = 'https://picsum.photos/300/250?random=1'
 
 /**
  * 模拟视频 URL：使用公开的示例视频
@@ -293,8 +287,6 @@ const initialNodes: AllNodeType[] = [
     id: 'image-initial-1',
     type: 'imageNode',
     position: { x: 50, y: 550 },
-    width: 350,
-    height: 250,
     data: {
       model: 'dall-e-3',
       prompt: '一个科技感的蓝色背景设计',
@@ -321,8 +313,6 @@ const initialNodes: AllNodeType[] = [
     id: 'image-initial-2',
     type: 'imageNode',
     position: { x: 450, y: 550 },
-    width: 350,
-    height: 250,
     data: {
       model: 'stable-diffusion',
       prompt: '星空下的麦田景观艺术',
@@ -339,8 +329,6 @@ const initialNodes: AllNodeType[] = [
     id: 'image-initial-3',
     type: 'imageNode',
     position: { x: 850, y: 550 },
-    width: 350,
-    height: 250,
     data: {
       model: 'gemini-3-pro-image-preview',
       prompt: '现代建筑与自然的融合设计',
@@ -357,8 +345,6 @@ const initialNodes: AllNodeType[] = [
     id: 'image-initial-4',
     type: 'imageNode',
     position: { x: 1250, y: 550 },
-    width: 350,
-    height: 250,
     data: {
       model: 'dall-e-3',
       prompt: '丢失的提示词信息',
@@ -379,8 +365,6 @@ const initialNodes: AllNodeType[] = [
     id: 'image-initial-5',
     type: 'imageNode',
     position: { x: 1650, y: 550 },
-    width: 350,
-    height: 250,
     data: {
       model: 'dall-e-3',
       prompt: '日本樱花季风景画',
@@ -403,8 +387,6 @@ const initialNodes: AllNodeType[] = [
     id: 'video-initial-1',
     type: 'videoNode',
     position: { x: 50, y: 900 },
-    width: 400,
-    height: 280,
     data: {
       model: 'genai-video',
       prompt: '一只小鹿在森林中奔跑的场景',
@@ -430,8 +412,6 @@ const initialNodes: AllNodeType[] = [
     id: 'video-initial-2',
     type: 'videoNode',
     position: { x: 520, y: 900 },
-    width: 400,
-    height: 280,
     data: {
       model: 'pika-api',
       prompt: '城市街道傍晚的繁忙交通',
@@ -452,8 +432,6 @@ const initialNodes: AllNodeType[] = [
     id: 'video-initial-3',
     type: 'videoNode',
     position: { x: 990, y: 900 },
-    width: 400,
-    height: 280,
     data: {
       model: 'genai-video',
       prompt: '蜂鸟在花丛中飞舞的特写',
@@ -474,8 +452,6 @@ const initialNodes: AllNodeType[] = [
     id: 'video-initial-4',
     type: 'videoNode',
     position: { x: 1460, y: 900 },
-    width: 400,
-    height: 280,
     data: {
       model: 'runway-ml',
       prompt: '错误的请求格式',
@@ -574,8 +550,6 @@ export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
         id: nextId,
         type: 'imageNode',
         position: nextPosition,
-        width: 350,
-        height: 250,
         data: {
           model: 'dall-e-3',
           prompt: '',
@@ -593,8 +567,6 @@ export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
         id: nextId,
         type: 'videoNode',
         position: nextPosition,
-        width: 400,
-        height: 280,
         data: {
           model: 'genai-video',
           prompt: '',
@@ -659,15 +631,15 @@ export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
   },
 
   /**
-   * 调整节点尺寸
-   * @param nodeId 节点 ID
+   * 调整便签节点尺寸
+   * @param nodeId 便签节点 ID
    * @param width 新宽度
    * @param height 新高度
    */
-  resizeNode: (nodeId: string, width: number, height: number) => {
+  resizeNoteNode: (nodeId: string, width: number, height: number) => {
     set((state) => ({
       nodes: state.nodes.map((node) => {
-        if (node.id !== nodeId) {
+        if (node.id !== nodeId || node.type !== 'noteNode') {
           return node
         }
         return { ...node, width, height }
@@ -713,8 +685,8 @@ export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
       }
     } else {
       duplicatedNode = {
-        ...currentNode,
         id: newId,
+        type: currentNode.type,
         position: {
           x: currentNode.position.x + 40,
           y: currentNode.position.y + 40,
