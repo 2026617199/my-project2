@@ -30,7 +30,6 @@ import type {
     EdgeType
 } from "@/types/flow";
 import { Eye, EyeOff } from 'lucide-react'
-// import DevTools from './DevTools'
 
 /**
  * 自定义节点类型映射
@@ -156,7 +155,6 @@ const CanvasFlow = () => {
         [addNode, menuScreenPosition, onConnect, screenToFlowPosition]
     )
 
-    // console.log("CanvasFlow 重新渲染")
     // 说明：连接事件由 store action 处理，这里不再创建局部回调。
     return (
         <CanvasContextMenu onCreateNode={handleCreateNodeFromMenu}>
@@ -183,39 +181,50 @@ const CanvasFlow = () => {
                         </ControlButton>
                     </Controls>
                     {isMiniMapVisible ? <MiniMap pannable zoomable position='bottom-left' style={{ left: '48px' }} /> : null}
-                    {/* <DevTools /> */}
                 </ReactFlow>
             </div>
         </CanvasContextMenu>
     )
 }
 
-// 外部组件 - 提供 ReactFlowProvider
-const CanvasPage = () => {
+const CanvasSidebar = () => {
     const addNode = useCanvasFlowStore((state) => state.addNode)
-    const [isChatOpen, setIsChatOpen] = useState(false)
-    const [selectedPersonaId, setSelectedPersonaId] = useState<ChatPersonaId>(NO_CHAT_PERSONA_ID)
-    const { messages, isLoading, sendMessage } = useCanvasChat()
+    const { screenToFlowPosition } = useReactFlow<AllNodeType, EdgeType>()
 
-    // 侧边栏动作处理：保留页面层调度，避免与高频画布渲染耦合。
     const handleSidebarAction = useCallback((actionId: string) => {
+        const centerFlowPosition = screenToFlowPosition({
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+        })
+
         switch (actionId) {
             case 'create-note':
-                addNode('note')
+                addNode('note', centerFlowPosition)
                 break
             case 'create-image':
-                addNode('image')
+                addNode('image', centerFlowPosition)
                 break
             case 'create-video':
-                addNode('video')
+                addNode('video', centerFlowPosition)
                 break
             default:
                 if (assistantActionToPresetId[actionId]) {
-                    addNode('agent', undefined, { agentPresetId: assistantActionToPresetId[actionId] })
+                    addNode('agent', centerFlowPosition, {
+                        agentPresetId: assistantActionToPresetId[actionId],
+                    })
                 }
                 break
         }
-    }, [addNode])
+    }, [addNode, screenToFlowPosition])
+
+    return <FloatingSidebar onAction={handleSidebarAction} />
+}
+
+// 外部组件 - 提供 ReactFlowProvider
+const CanvasPage = () => {
+    const [isChatOpen, setIsChatOpen] = useState(false)
+    const [selectedPersonaId, setSelectedPersonaId] = useState<ChatPersonaId>(NO_CHAT_PERSONA_ID)
+    const { messages, isLoading, sendMessage } = useCanvasChat()
 
     return (
         <ReactFlowProvider>
@@ -223,7 +232,7 @@ const CanvasPage = () => {
                 <CanvasFlow />
 
                 {/* 悬浮侧边栏：与 CanvasFlow 同级，避免节点移动时不必要重渲染。 */}
-                <FloatingSidebar onAction={handleSidebarAction} />
+                <CanvasSidebar />
 
                 {/* 右下圆形聊天工具栏：负责打开抽屉与切换 system 人设。 */}
                 <CanvasChatToolbar
