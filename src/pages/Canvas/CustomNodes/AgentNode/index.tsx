@@ -1,4 +1,5 @@
 import { Position, type NodeProps } from '@xyflow/react'
+import { memo } from 'react'
 
 import { ButtonHandle } from '@/components/button-handle'
 import { Button } from '@/components/ui/button'
@@ -6,10 +7,11 @@ import { getAgentPresetLabelById } from '@/constants/agent-presets'
 import { useAgentExecution } from '@/hooks/useAgentExecution'
 import type { AgentNodeType } from '@/types/flow'
 
-export const AgentNode = ({ id, data, selected }: NodeProps<AgentNodeType>) => {
+export const AgentNode = memo(({ id, data, selected, dragging }: NodeProps<AgentNodeType>) => {
     const handleVisibilityClass = selected
-        ? 'opacity-100 pointer-events-auto'
-        : 'opacity-0 pointer-events-none group-hover/node:opacity-100 group-hover/node:pointer-events-auto'
+        ? 'visible opacity-100'
+        : 'invisible opacity-0 group-hover/node:visible group-hover/node:opacity-100'
+    const isDragging = Boolean(dragging)
     const { isGenerating, execute } = useAgentExecution({
         nodeId: id,
         model: data.model,
@@ -41,10 +43,16 @@ export const AgentNode = ({ id, data, selected }: NodeProps<AgentNodeType>) => {
                 <span className="absolute left-2 top-2 max-w-40 truncate rounded-md border bg-muted px-2 py-0.5 text-[11px] leading-4 text-muted-foreground">
                     {presetLabel}
                 </span>
-                <Button disabled={isGenerating} onClick={execute}>
-                    {isGenerating ? '生成中...' : '生成'}
-                </Button>
+                {isDragging ? (
+                    <span className="text-xs text-muted-foreground">拖动中...</span>
+                ) : (
+                    <Button disabled={isGenerating} onClick={execute}>
+                        {isGenerating ? '生成中...' : '生成'}
+                    </Button>
+                )}
             </div>
         </div>
     )
-}
+})
+
+AgentNode.displayName = 'AgentNode'

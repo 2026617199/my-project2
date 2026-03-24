@@ -105,16 +105,18 @@ export const VideoToolbar = ({
                 })}
             </div>
 
-            <Lightbox
-                open={isLightboxOpen}
-                close={() => {
-                    setIsLightboxOpen(false)
-                }}
-                slides={videoUrls.filter((url): url is string => !!url).map((url) => ({ src: url }))}
-                plugins={[Fullscreen, Slideshow, Zoom, Share, Download]}
-                zoom={{ maxZoomPixelRatio: 4, zoomInMultiplier: 2 }}
-                controller={{ closeOnBackdropClick: true }}
-            />
+            {isLightboxOpen ? (
+                <Lightbox
+                    open={isLightboxOpen}
+                    close={() => {
+                        setIsLightboxOpen(false)
+                    }}
+                    slides={videoUrls.filter((url): url is string => !!url).map((url) => ({ src: url }))}
+                    plugins={[Fullscreen, Slideshow, Zoom, Share, Download]}
+                    zoom={{ maxZoomPixelRatio: 4, zoomInMultiplier: 2 }}
+                    controller={{ closeOnBackdropClick: true }}
+                />
+            ) : null}
         </>
     )
 }

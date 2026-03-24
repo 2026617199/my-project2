@@ -24,7 +24,6 @@ import type { ImageGenerationNode } from '@/types/flow'
 type ImageToolbarProps = {
     data: ImageGenerationNode
     selected: boolean
-    zoom: number
 }
 
 type ActionKey = 'repaint' | 'erase' | 'enhance' | 'outpaint' | 'crop' | 'download' | 'preview'
@@ -36,7 +35,7 @@ type ActionKey = 'repaint' | 'erase' | 'enhance' | 'outpaint' | 'crop' | 'downlo
  * - 处理工具栏按钮交互反馈
  * - 基于 yet-another-react-lightbox 提供放大查看能力
  */
-export const ImageToolbar = ({ data, selected, zoom }: ImageToolbarProps) => {
+export const ImageToolbar = ({ data, selected }: ImageToolbarProps) => {
     const [isLightboxOpen, setIsLightboxOpen] = useState(false)
 
     // 获取所有图片 URL 数组
@@ -102,16 +101,18 @@ export const ImageToolbar = ({ data, selected, zoom }: ImageToolbarProps) => {
                 })}
             </div>
 
-            <Lightbox
-                open={isLightboxOpen}
-                close={() => {
-                    setIsLightboxOpen(false)
-                }}
-                slides={imageUrls.filter((url): url is string => !!url).map((url) => ({ src: url }))}
-                plugins={[Fullscreen, Slideshow, Zoom, Share, Download]}
-                zoom={{ maxZoomPixelRatio: 4, zoomInMultiplier: 2 }}
-                controller={{ closeOnBackdropClick: true }}
-            />
+            {isLightboxOpen ? (
+                <Lightbox
+                    open={isLightboxOpen}
+                    close={() => {
+                        setIsLightboxOpen(false)
+                    }}
+                    slides={imageUrls.filter((url): url is string => !!url).map((url) => ({ src: url }))}
+                    plugins={[Fullscreen, Slideshow, Zoom, Share, Download]}
+                    zoom={{ maxZoomPixelRatio: 4, zoomInMultiplier: 2 }}
+                    controller={{ closeOnBackdropClick: true }}
+                />
+            ) : null}
         </>
     )
 }

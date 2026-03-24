@@ -1,4 +1,5 @@
 import { NodeToolbar, Position, type NodeProps } from '@xyflow/react'
+import { memo } from 'react'
 
 import { ButtonHandle } from '@/components/button-handle'
 import type { VideoNodeType } from '@/types/flow'
@@ -15,14 +16,16 @@ import { VideoToolbar } from './VideoToolbar'
  * - 展示视频内容、生成状态与进度
  * - 提供工具栏操作（复制、删除、重新生成）
  */
-export const VideoNode = ({
+export const VideoNode = memo(({
     id,
     data,
-    selected
+    selected,
+    dragging
 }: NodeProps<VideoNodeType>) => {
+    const isDragging = Boolean(dragging)
     const handleVisibilityClass = selected
-        ? 'opacity-100 pointer-events-auto'
-        : 'opacity-0 pointer-events-none group-hover/node:opacity-100 group-hover/node:pointer-events-auto'
+        ? 'visible opacity-100'
+        : 'invisible opacity-0 group-hover/node:visible group-hover/node:opacity-100'
 
     // console.log('视频节点重新渲染', id)
 
@@ -50,7 +53,7 @@ export const VideoNode = ({
                 className="relative flex w-100 min-h-30 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-transform duration-200 ease-in-out"
             >
                 {/* 选中时显示工具栏（与图片节点一致，使用 NodeToolbar 管理定位） */}
-                <NodeToolbar isVisible={selected} position={Position.Top} offset={10}>
+                <NodeToolbar isVisible={selected && !isDragging} position={Position.Top} offset={10}>
                     <VideoToolbar
                         data={data}
                         selected={selected}
@@ -59,7 +62,7 @@ export const VideoNode = ({
 
                 {/* 底部增强输入区：固定在节点下方 */}
                 <NodeToolbar
-                    isVisible={selected}
+                    isVisible={selected && !isDragging}
                     position={Position.Bottom}
                     offset={18}
                 >
@@ -70,9 +73,17 @@ export const VideoNode = ({
 
                 {/* 视频内容区 */}
                 <div className="h-full w-full flex-1 min-h-0 bg-muted/10">
-                    <VideoContent data={data} />
+                    {isDragging ? (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                            拖动中...
+                        </div>
+                    ) : (
+                        <VideoContent data={data} />
+                    )}
                 </div>
             </div>
         </div>
     )
-}
+})
+
+VideoNode.displayName = 'VideoNode'

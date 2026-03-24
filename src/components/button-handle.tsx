@@ -1,7 +1,6 @@
 import {
-  useCallback,
+  useEffect,
   useRef,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { Position, type HandleProps } from "@xyflow/react";
 import { BaseHandle } from "@/components/base-handle";
@@ -22,7 +21,7 @@ export function ButtonHandle({
   showButton = false,
   visible,
   position = Position.Bottom,
-  followAreaSize = 96,
+  followAreaSize = 64,
   buttonSize = 28,
   children,
   ...props
@@ -35,39 +34,69 @@ export function ButtonHandle({
   const shouldShow = visible ?? showButton;
   const wrapperClassName = wrapperClassNames[position || Position.Bottom];
   const vertical = position === Position.Top || position === Position.Bottom;
-  const followAreaRef = useRef<HTMLDivElement | null>(null);
+  const followAreaRef = useRef<any>(null);
+  const pendingPointerRef = useRef<any>(null);
+  const frameRef = useRef<number | null>(null);
 
-  // 用 CSS 变量更新按钮位置，避免 React state 带来的重渲染。
-  const handlePointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
-      const area = event.currentTarget;
-      const rect = area.getBoundingClientRect();
-      const halfButton = buttonSize / 2;
+  const flushPointerPosition = () => {
+    frameRef.current = null;
 
-      const centerX = clamp(
-        event.clientX - rect.left,
-        halfButton,
-        followAreaSize - halfButton,
-      );
-      const centerY = clamp(
-        event.clientY - rect.top,
-        halfButton,
-        followAreaSize - halfButton,
-      );
+    const area = followAreaRef.current;
+    const pointer = pendingPointerRef.current;
+    if (!area || !pointer) {
+      return;
+    }
 
-      area.style.setProperty("--btn-x", `${centerX}px`);
-      area.style.setProperty("--btn-y", `${centerY}px`);
-    },
-    [buttonSize, followAreaSize],
-  );
+    const rect = area.getBoundingClientRect();
+    const halfButton = buttonSize / 2;
+    const scaleX = rect.width > 0 ? rect.width / followAreaSize : 1;
+    const scaleY = rect.height > 0 ? rect.height / followAreaSize : 1;
 
-  // 鼠标离开区域后清除变量，按钮回到默认中心（50%/50%）。
-  const handlePointerLeave = useCallback(() => {
+    const centerX = clamp(
+      (pointer.x - rect.left) / scaleX,
+      halfButton,
+      followAreaSize - halfButton,
+    );
+    const centerY = clamp(
+      (pointer.y - rect.top) / scaleY,
+      halfButton,
+      followAreaSize - halfButton,
+    );
+
+    area.style.setProperty("--btn-x", `${Math.round(centerX)}px`);
+    area.style.setProperty("--btn-y", `${Math.round(centerY)}px`);
+  };
+
+  const handlePointerMove = (event: any) => {
+    pendingPointerRef.current = { x: event.clientX, y: event.clientY };
+    if (frameRef.current !== null) {
+      return;
+    }
+
+    frameRef.current = window.requestAnimationFrame(flushPointerPosition);
+  };
+
+  const handlePointerLeave = () => {
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+
+    pendingPointerRef.current = null;
+
     const area = followAreaRef.current;
     if (area) {
       area.style.removeProperty("--btn-x");
       area.style.removeProperty("--btn-y");
     }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+      }
+    };
   }, []);
 
   return (

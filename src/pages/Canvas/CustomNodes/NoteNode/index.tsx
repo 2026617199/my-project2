@@ -1,5 +1,5 @@
 import { NodeResizer, Position, type NodeProps } from '@xyflow/react'
-import { useRef } from 'react'
+import { memo, useRef } from 'react'
 
 import { ButtonHandle } from '@/components/button-handle'
 import { useCanvasFlowStore } from '@/store/canvasFlowStore'
@@ -9,25 +9,26 @@ import { NoteContent } from './NoteContent'
 import { NoteToolbar } from './NoteToolbar'
 
 // NoteNode：最小可用文本节点实现，保留编辑、预览、缩放与工具栏动作。
-export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNodeType>) => {
+export const NoteNode = memo(({ id, data, selected, width, height, dragging }: NodeProps<NoteNodeType>) => {
     const setNoteNodeEditing = useCanvasFlowStore((state) => state.setNoteNodeEditing)
     const updateNoteNodeContent = useCanvasFlowStore((state) => state.updateNoteNodeContent)
     const resizeNoteNode = useCanvasFlowStore((state) => state.resizeNoteNode)
     const duplicateNode = useCanvasFlowStore((state) => state.duplicateNode)
     const deleteNode = useCanvasFlowStore((state) => state.deleteNode)
+    const isDragging = Boolean(dragging)
 
     const inputHandleId = data.inputHandleId ?? 'input'
     const outputHandleId = data.outputHandleId ?? 'output'
     const latestSizeRef = useRef<{ width: number; height: number } | null>(null)
     const handleVisibilityClass = selected
-        ? 'opacity-100 pointer-events-auto'
-        : 'opacity-0 pointer-events-none group-hover/node:opacity-100 group-hover/node:pointer-events-auto'
+        ? 'visible opacity-100'
+        : 'invisible opacity-0 group-hover/node:visible group-hover/node:opacity-100'
 
     // console.log("文本节点重新渲染")
     return (
         <div className="group/node relative">
             <NodeResizer
-                isVisible={selected}
+                isVisible={selected && !isDragging}
                 lineClassName="!border !border-muted-foreground"
                 onResize={(_, { width, height }) => {
                     latestSizeRef.current = { width, height }
@@ -64,7 +65,7 @@ export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNo
                 }}
                 className="relative flex h-full w-full flex-col gap-2 rounded-xl border bg-card p-2 shadow-sm transition-transform duration-200 ease-in-out"
             >
-                {selected ? (
+                {selected && !isDragging ? (
                     <NoteToolbar
                         onDuplicate={() => {
                             duplicateNode(id)
@@ -76,21 +77,29 @@ export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNo
                 ) : null}
 
                 <div className="flex h-full w-full overflow-hidden rounded-md bg-white ">
-                    <NoteContent
-                        content={data.content}
-                        isEditing={Boolean(data.isEditing)}
-                        onStartEdit={() => {
-                            setNoteNodeEditing(id, true)
-                        }}
-                        onStopEdit={() => {
-                            setNoteNodeEditing(id, false)
-                        }}
-                        onContentChange={(value) => {
-                            updateNoteNodeContent(id, value)
-                        }}
-                    />
+                    {isDragging ? (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                            拖动中...
+                        </div>
+                    ) : (
+                        <NoteContent
+                            content={data.content}
+                            isEditing={Boolean(data.isEditing)}
+                            onStartEdit={() => {
+                                setNoteNodeEditing(id, true)
+                            }}
+                            onStopEdit={() => {
+                                setNoteNodeEditing(id, false)
+                            }}
+                            onContentChange={(value) => {
+                                updateNoteNodeContent(id, value)
+                            }}
+                        />
+                    )}
                 </div>
             </div>
         </div>
     )
-}
+})
+
+NoteNode.displayName = 'NoteNode'
