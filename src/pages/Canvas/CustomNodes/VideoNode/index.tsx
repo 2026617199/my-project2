@@ -1,4 +1,4 @@
-import { NodeToolbar, Position, type NodeProps } from '@xyflow/react'
+import { NodeToolbar, Position, useViewport, type NodeProps } from '@xyflow/react'
 import { memo } from 'react'
 
 import { ButtonHandle } from '@/components/button-handle'
@@ -22,6 +22,7 @@ export const VideoNode = memo(({
     selected,
     dragging
 }: NodeProps<VideoNodeType>) => {
+    const { zoom } = useViewport()
     const isDragging = Boolean(dragging)
     const handleVisibilityClass = selected
         ? 'visible opacity-100'
@@ -49,30 +50,36 @@ export const VideoNode = memo(({
                 className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
-            <div
-                className="relative flex w-100 min-h-30 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-transform duration-200 ease-in-out"
+            {/* 顶部工具栏：随节点与画布缩放联动 */}
+            <NodeToolbar isVisible={selected && !isDragging} position={Position.Top} offset={10 * zoom}>
+                <VideoToolbar
+                    data={data}
+                    selected={selected}
+                />
+            </NodeToolbar>
+
+            {/* 底部增强输入区：固定在节点下方 */}
+            <NodeToolbar
+                isVisible={selected && !isDragging}
+                position={Position.Bottom}
+                offset={18 * zoom}
             >
-                {/* 选中时显示工具栏（与图片节点一致，使用 NodeToolbar 管理定位） */}
-                <NodeToolbar isVisible={selected && !isDragging} position={Position.Top} offset={10}>
-                    <VideoToolbar
-                        data={data}
-                        selected={selected}
-                    />
-                </NodeToolbar>
-
-                {/* 底部增强输入区：固定在节点下方 */}
-                <NodeToolbar
-                    isVisible={selected && !isDragging}
-                    position={Position.Bottom}
-                    offset={18}
+                <div
+                    className="nodrag nopan nowheel"
+                    style={{
+                        transform: `scale(${zoom})`,
+                        transformOrigin: 'top center',
+                    }}
                 >
-                    <div className="nodrag nopan nowheel">
-                        <VideoPromptPanel nodeId={id} />
-                    </div>
-                </NodeToolbar>
+                    <VideoPromptPanel nodeId={id} />
+                </div>
+            </NodeToolbar>
 
-                {/* 视频内容区 */}
-                <div className="h-full w-full flex-1 min-h-0 bg-muted/10">
+            <div
+                className="relative flex w-87.5 min-h-62.5 flex-col gap-2 rounded-xl border bg-card p-2 shadow-sm transition-transform duration-200 ease-in-out"
+            >
+                {/* 视频内容区：与图片节点一致的比例容器，保证展示区域尺寸标准化 */}
+                <div className="relative flex w-full min-h-62.5 aspect-7/5 overflow-hidden rounded-md bg-muted/10">
                     {isDragging ? (
                         <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
                             拖动中...

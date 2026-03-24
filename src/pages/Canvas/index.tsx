@@ -165,6 +165,8 @@ const CanvasFlow = () => {
                     nodeTypes={nodeTypes}
                     nodesDraggable
                     fitView
+                    minZoom={0.2}
+                    maxZoom={2}
                 >
                     <Background />
                     <Controls />
