@@ -23,7 +23,7 @@ import type {
     AllNodeType,
     EdgeType
 } from "@/types/flow";
-import DevTools from './DevTools'
+// import DevTools from './DevTools'
 
 /**
  * 自定义节点类型映射
@@ -148,7 +148,7 @@ const CanvasFlow = () => {
         [addNode, menuScreenPosition, onConnect, screenToFlowPosition]
     )
 
-    console.log("CanvasFlow 重新渲染")
+    // console.log("CanvasFlow 重新渲染")
     // 说明：连接事件由 store action 处理，这里不再创建局部回调。
     return (
         <CanvasContextMenu onCreateNode={handleCreateNodeFromMenu}>
@@ -169,7 +169,7 @@ const CanvasFlow = () => {
                     <Background />
                     <Controls />
                     <MiniMap pannable zoomable />
-                    <DevTools />
+                    {/* <DevTools /> */}
                 </ReactFlow>
             </div>
         </CanvasContextMenu>

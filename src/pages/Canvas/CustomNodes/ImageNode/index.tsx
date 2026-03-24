@@ -25,7 +25,7 @@ export const ImageNode = ({
 
     const [isHovered, setIsHovered] = useState(false)
 
-    console.log('图片节点重新渲染', id)
+    // console.log('图片节点重新渲染', id)
 
     return (
         <>

@@ -25,7 +25,7 @@ service.interceptors.request.use(
   },
   error => {
     // 对请求错误做些什么，在这里可以对请求错误做统一处理
-    console.log("请求拦截器错误：" + error) //调试的时候可以用到
+    // console.log("请求拦截器错误：" + error) //调试的时候可以用到
     return Promise.reject(error)
   }
 )

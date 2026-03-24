@@ -21,7 +21,7 @@ export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNo
     const latestSizeRef = useRef<{ width: number; height: number } | null>(null)
     const [isHovered, setIsHovered] = useState(false)
 
-    console.log("文本节点重新渲染")
+    // console.log("文本节点重新渲染")
     return (
         <>
             <NodeResizer
