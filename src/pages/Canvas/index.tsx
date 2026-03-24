@@ -8,6 +8,7 @@ import {
     type FinalConnectionState,
     type InternalNode,
     useReactFlow,
+    ControlButton,
 } from '@xyflow/react'
 
 import { NoteNode } from './CustomNodes/NoteNode'
@@ -28,6 +29,7 @@ import type {
     AllNodeType,
     EdgeType
 } from "@/types/flow";
+import { Eye, EyeOff } from 'lucide-react'
 // import DevTools from './DevTools'
 
 /**
@@ -60,6 +62,7 @@ const CanvasFlow = () => {
 
     const contextMenuTriggerRef = useRef<HTMLDivElement | null>(null)
     const [menuScreenPosition, setMenuScreenPosition] = useState({ x: 0, y: 0 })
+    const [isMiniMapVisible, setIsMiniMapVisible] = useState(true)
     const pendingConnectRef = useRef<{
         nodeId: string
         handleId: string | null
@@ -174,8 +177,12 @@ const CanvasFlow = () => {
                     maxZoom={2}
                 >
                     <Background />
-                    <Controls />
-                    <MiniMap pannable zoomable position='bottom-left' style={{ left: '48px' }} />
+                    <Controls>
+                        <ControlButton onClick={() => setIsMiniMapVisible((prev) => !prev)}>
+                            {isMiniMapVisible ? <EyeOff className='size-4' /> : <Eye className='size-4' />}
+                        </ControlButton>
+                    </Controls>
+                    {isMiniMapVisible ? <MiniMap pannable zoomable position='bottom-left' style={{ left: '48px' }} /> : null}
                     {/* <DevTools /> */}
                 </ReactFlow>
             </div>
