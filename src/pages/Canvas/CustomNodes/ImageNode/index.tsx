@@ -1,5 +1,4 @@
 import { NodeToolbar, Position, useViewport, type NodeProps } from '@xyflow/react'
-import { useState } from 'react'
 
 import { ButtonHandle } from '@/components/button-handle'
 import type { ImageNodeType } from '@/types/flow'
@@ -22,20 +21,21 @@ export const ImageNode = ({
     selected
 }: NodeProps<ImageNodeType>) => {
     const { zoom } = useViewport()
-
-    const [isHovered, setIsHovered] = useState(false)
+    const handleVisibilityClass = selected
+        ? 'opacity-100 pointer-events-auto'
+        : 'opacity-0 pointer-events-none group-hover/node:opacity-100 group-hover/node:pointer-events-auto'
 
     // console.log('图片节点重新渲染', id)
 
     return (
-        <>
+        <div className="group/node relative">
             {/* 左侧输入 Handle */}
             <ButtonHandle
                 type="target"
                 position={Position.Left}
                 id="input"
-                visible={selected || isHovered}
-                className="h-3! w-3! border-2! border-background! bg-primary!"
+                visible
+                className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
             {/* 右侧输出 Handle */}
@@ -43,8 +43,8 @@ export const ImageNode = ({
                 type="source"
                 position={Position.Right}
                 id="output"
-                visible={selected || isHovered}
-                className="h-3! w-3! border-2! border-background! bg-primary!"
+                visible
+                className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
             {/* 顶部工具栏：随节点与画布缩放联动 */}
@@ -71,18 +71,12 @@ export const ImageNode = ({
 
             <div
                 className="relative flex w-87.5 min-h-62.5 flex-col gap-2 rounded-xl border bg-card p-2 shadow-sm transition-transform duration-200 ease-in-out"
-                onMouseEnter={() => {
-                    setIsHovered(true)
-                }}
-                onMouseLeave={() => {
-                    setIsHovered(false)
-                }}
             >
                 {/* 图片内容区：提供明确高度基准，避免 h-full + absolute 链路在自适应场景下塌陷 */}
                 <div className="relative flex w-full min-h-62.5 aspect-7/5 overflow-hidden rounded-md bg-muted/10">
                     <ImageContent data={data} />
                 </div>
             </div>
-        </>
+        </div>
     )
 }

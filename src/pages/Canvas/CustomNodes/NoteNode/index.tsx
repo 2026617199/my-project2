@@ -1,5 +1,5 @@
 import { NodeResizer, Position, type NodeProps } from '@xyflow/react'
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 
 import { ButtonHandle } from '@/components/button-handle'
 import { useCanvasFlowStore } from '@/store/canvasFlowStore'
@@ -19,11 +19,13 @@ export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNo
     const inputHandleId = data.inputHandleId ?? 'input'
     const outputHandleId = data.outputHandleId ?? 'output'
     const latestSizeRef = useRef<{ width: number; height: number } | null>(null)
-    const [isHovered, setIsHovered] = useState(false)
+    const handleVisibilityClass = selected
+        ? 'opacity-100 pointer-events-auto'
+        : 'opacity-0 pointer-events-none group-hover/node:opacity-100 group-hover/node:pointer-events-auto'
 
     // console.log("文本节点重新渲染")
     return (
-        <>
+        <div className="group/node relative">
             <NodeResizer
                 isVisible={selected}
                 lineClassName="!border !border-muted-foreground"
@@ -42,8 +44,8 @@ export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNo
                 type="target"
                 position={Position.Left}
                 id={inputHandleId}
-                visible={selected || isHovered}
-                className="h-3! w-3! border-2! border-background! bg-primary!"
+                visible
+                className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
             {/* 右侧输出 Handle：用于连接到其他节点。 */}
@@ -51,8 +53,8 @@ export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNo
                 type="source"
                 position={Position.Right}
                 id={outputHandleId}
-                visible={selected || isHovered}
-                className="h-3! w-3! border-2! border-background! bg-primary!"
+                visible
+                className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
             <div
@@ -61,12 +63,6 @@ export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNo
                     height,
                 }}
                 className="relative flex h-full w-full flex-col gap-2 rounded-xl border bg-card p-2 shadow-sm transition-transform duration-200 ease-in-out"
-                onMouseEnter={() => {
-                    setIsHovered(true)
-                }}
-                onMouseLeave={() => {
-                    setIsHovered(false)
-                }}
             >
                 {selected ? (
                     <NoteToolbar
@@ -95,6 +91,6 @@ export const NoteNode = ({ id, data, selected, width, height }: NodeProps<NoteNo
                     />
                 </div>
             </div>
-        </>
+        </div>
     )
 }
