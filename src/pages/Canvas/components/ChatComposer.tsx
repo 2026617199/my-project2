@@ -1,4 +1,4 @@
-import { IconSend2 } from '@tabler/icons-react'
+import { IconSend2, IconSquare } from '@tabler/icons-react'
 
 import { Button } from '@/components/ui/button'
 
@@ -6,6 +6,7 @@ type ChatComposerProps = {
     value: string
     onChange: (value: string) => void
     onSubmit: () => Promise<void> | void
+    onStop?: () => void
     disabled?: boolean
     loading?: boolean
 }
@@ -14,10 +15,12 @@ export const ChatComposer = ({
     value,
     onChange,
     onSubmit,
+    onStop,
     disabled = false,
     loading = false,
 }: ChatComposerProps) => {
     const canSend = value.trim().length > 0 && !disabled && !loading
+    const canStop = loading && !disabled && Boolean(onStop)
 
     return (
         <footer className="border-t border-slate-200 px-4 py-3">
@@ -30,9 +33,16 @@ export const ChatComposer = ({
                     onChange={(event) => onChange(event.target.value)}
                 />
 
-                <Button type="button" size="sm" variant="blue" disabled={!canSend} loading={loading} onClick={onSubmit}>
-                    <IconSend2 size={16} />
-                </Button>
+                {loading ? (
+                    <Button type="button" size="sm" variant="default" disabled={!canStop} onClick={onStop}>
+                        <IconSquare size={14} />
+                        停止
+                    </Button>
+                ) : (
+                    <Button type="button" size="sm" variant="blue" disabled={!canSend} onClick={onSubmit}>
+                        <IconSend2 size={16} />
+                    </Button>
+                )}
             </div>
         </footer>
     )

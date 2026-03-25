@@ -16,6 +16,7 @@ type ChatDrawerProps = {
     isLoading: boolean
     personaId: ChatPersonaId
     onSend: (payload: { content: string; personaId: ChatPersonaId; model: string }) => Promise<void>
+    onStop: () => void
 }
 
 export const ChatDrawer = ({
@@ -25,6 +26,7 @@ export const ChatDrawer = ({
     isLoading,
     personaId,
     onSend,
+    onStop,
 }: ChatDrawerProps) => {
     const [inputValue, setInputValue] = useState('')
     const [model, setModel] = useState(DEFAULT_CANVAS_CHAT_MODEL)
@@ -79,7 +81,14 @@ export const ChatDrawer = ({
 
                     <ChatMessageList messages={messages} isLoading={isLoading} />
 
-                    <ChatComposer value={inputValue} onChange={setInputValue} onSubmit={handleSend} disabled={!canSend} loading={isLoading} />
+                    <ChatComposer
+                        value={inputValue}
+                        onChange={setInputValue}
+                        onSubmit={handleSend}
+                        onStop={onStop}
+                        disabled={isLoading ? false : !canSend}
+                        loading={isLoading}
+                    />
                 </div>
             </DialogContent>
         </Dialog>

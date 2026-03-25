@@ -13,7 +13,7 @@ import type { ChatPersonaId } from '@/types/NoteGeneration'
 const CanvasPage = () => {
     const [isChatOpen, setIsChatOpen] = useState(false)
     const [selectedPersonaId, setSelectedPersonaId] = useState<ChatPersonaId>(NO_CHAT_PERSONA_ID)
-    const { messages, isLoading, sendMessage } = useCanvasChat()
+    const { messages, isLoading, sendMessage, stopMessage } = useCanvasChat()
 
     return (
         <ReactFlowProvider>
@@ -39,6 +39,7 @@ const CanvasPage = () => {
                     isLoading={isLoading}
                     personaId={selectedPersonaId}
                     onSend={sendMessage}
+                    onStop={stopMessage}
                 />
             </div>
         </ReactFlowProvider>

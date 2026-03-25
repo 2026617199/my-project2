@@ -7,6 +7,9 @@ type ChatMessageListProps = {
 }
 
 export const ChatMessageList = ({ messages, isLoading = false }: ChatMessageListProps) => {
+    const lastMessage = messages[messages.length - 1]
+    const shouldShowThinking = isLoading && (!lastMessage || lastMessage.role === 'user')
+
     return (
         <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {messages.length === 0 && (
@@ -35,7 +38,7 @@ export const ChatMessageList = ({ messages, isLoading = false }: ChatMessageList
                 )
             })}
 
-            {isLoading && (
+            {shouldShowThinking && (
                 <div className="mr-auto max-w-[90%] rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
                     AI 正在思考中...
                 </div>

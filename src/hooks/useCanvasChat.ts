@@ -6,7 +6,7 @@
  * - 负责消息收发、人格提示词注入与错误提示。
  * - 对外暴露消息列表、加载态及发送/清空方法，供 Canvas 页面复用。
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { createChatCompletion } from '@/api/ai'
 import { DEFAULT_CANVAS_CHAT_MODEL } from '@/constants/ai-models'
@@ -16,7 +16,6 @@ import type {
   ChatPersonaId,
   NoteGenerationMessage,
   NoteGenerationRequest,
-  NoteGenerationResponse,
 } from '@/types/NoteGeneration'
 
 /**
@@ -75,8 +74,22 @@ export const useCanvasChat = () => {
   const [messages, setMessages] = useState<NoteGenerationMessage[]>([])
   /** 消息发送中的加载状态，避免重复提交。 */
   const [isLoading, setIsLoading] = useState(false)
+  /** 当前请求控制器（用于中断流式生成）。 */
+  const abortControllerRef = useRef<AbortController | null>(null)
   /** 统一消息提示能力（toast/snackbar）。 */
   const { error } = useMessage()
+
+  const stopMessage = () => {
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+  }
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort()
+      abortControllerRef.current = null
+    }
+  }, [])
 
   /**
    * 发送一条用户消息并处理模型回复。
@@ -115,30 +128,101 @@ export const useCanvasChat = () => {
     }
 
     const nextMessages = [...messages, userMessage]
-    setMessages(nextMessages)
+    const assistantMessageIndex = nextMessages.length
+    setMessages([
+      ...nextMessages,
+      {
+        role: 'assistant',
+        content: '',
+      },
+    ])
     setIsLoading(true)
+
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     try {
       const requestPayload: NoteGenerationRequest = {
         model,
         messages: buildRequestMessages(payload.personaId, nextMessages),
+        stream: true,
       }
 
-      const response = (await createChatCompletion(requestPayload)) as NoteGenerationResponse
-      const assistantContent =
-        response?.choices?.[0]?.message?.content?.trim() ||
-        '生成出现了点问题，未能获取到有效内容，请稍后再试~'
+      const stream = (await createChatCompletion(requestPayload, controller.signal)) as AsyncGenerator<string>
+      for await (const chunk of stream) {
+        setMessages((prev) => {
+          const assistantMessage = prev[assistantMessageIndex]
+          if (!assistantMessage || assistantMessage.role !== 'assistant') {
+            return prev
+          }
 
-      const assistantMessage: NoteGenerationMessage = {
-        role: 'assistant',
-        content: assistantContent,
+          const updatedMessages = [...prev]
+          updatedMessages[assistantMessageIndex] = {
+            ...assistantMessage,
+            content: `${assistantMessage.content}${chunk}`,
+          }
+          return updatedMessages
+        })
       }
-      const mergedMessages = [...nextMessages, assistantMessage]
-      setMessages(mergedMessages)
+
+      setMessages((prev) => {
+        const assistantMessage = prev[assistantMessageIndex]
+        if (!assistantMessage || assistantMessage.role !== 'assistant') {
+          return prev
+        }
+
+        if (assistantMessage.content.trim()) {
+          return prev
+        }
+
+        const updatedMessages = [...prev]
+        updatedMessages[assistantMessageIndex] = {
+          ...assistantMessage,
+          content: '生成出现了点问题，未能获取到有效内容，请稍后再试~',
+        }
+        return updatedMessages
+      })
     } catch (chatError: any) {
+      if (chatError?.name === 'AbortError') {
+        setMessages((prev) => {
+          const assistantMessage = prev[assistantMessageIndex]
+          if (!assistantMessage || assistantMessage.role !== 'assistant') {
+            return prev
+          }
+
+          const updatedMessages = [...prev]
+          updatedMessages[assistantMessageIndex] = {
+            ...assistantMessage,
+            content: assistantMessage.content.trim()
+              ? `${assistantMessage.content}\n\n（已停止生成）`
+              : '已停止生成。',
+          }
+          return updatedMessages
+        })
+        return
+      }
+
       console.error('聊天请求失败:', chatError)
       error('对话失败，请稍后重试')
+
+      setMessages((prev) => {
+        const assistantMessage = prev[assistantMessageIndex]
+        if (!assistantMessage || assistantMessage.role !== 'assistant') {
+          return prev
+        }
+
+        const updatedMessages = [...prev]
+        updatedMessages[assistantMessageIndex] = {
+          ...assistantMessage,
+          content: '生成出现了点问题，未能获取到有效内容，请稍后再试~',
+        }
+        return updatedMessages
+      })
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null
+      }
       setIsLoading(false)
     }
   }
@@ -149,6 +233,7 @@ export const useCanvasChat = () => {
    * @returns void
    */
   const clearLocalMessages = () => {
+    stopMessage()
     setMessages([])
   }
 
@@ -156,6 +241,7 @@ export const useCanvasChat = () => {
     messages,
     isLoading,
     sendMessage,
+    stopMessage,
     clearLocalMessages,
   }
 }

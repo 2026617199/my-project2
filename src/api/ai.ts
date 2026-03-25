@@ -1,4 +1,5 @@
 import aiService from '@/utils/aiRequest'
+import { EventSourceParserStream } from 'eventsource-parser/stream'
 
 // ===================== 账户余额相关 =====================
 
@@ -51,11 +52,47 @@ export function getVideoTaskStatus(id: string) {
 // ===================== 聊天相关 =====================
 
 // 兼容 OpenAI 格式的文字对话接口，支持全部文字模型
-export function createChatCompletion(data: any) {
+// - stream: false 或不传 → 返回完整响应
+// - stream: true → 返回 async generator，逐块 yield 文本内容
+export async function createChatCompletion(data: any, signal?: AbortSignal) {
+  if (data.stream) {
+    const response = await fetch('/ai-proxy/v1/chat/completions', {
+      method: 'POST',
+      signal,
+      headers: {
+        Accept: 'text/event-stream',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      throw new Error(await response.text().catch(() => `请求失败：${response.status}`))
+    }
+
+    if (!response.body) {
+      throw new Error('浏览器不支持流式读取')
+    }
+
+    const reader = response.body
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(new EventSourceParserStream())
+      .getReader()
+
+    return (async function* () {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done || value?.data === '[DONE]') return
+        const content = JSON.parse(value.data)?.choices?.[0]?.delta?.content
+        if (content) yield content
+      }
+    })()
+  }
+
   return aiService({
     url: '/v1/chat/completions',
     method: 'post',
-    data
+    data,
   })
 }
 
