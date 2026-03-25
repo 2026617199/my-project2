@@ -7,11 +7,11 @@ import { BaseHandle } from "@/components/base-handle";
 
 const wrapperClassNames: Record<Position, string> = {
   [Position.Top]:
-    "flex-col-reverse left-1/2 -translate-y-full -translate-x-1/2",
-  [Position.Bottom]: "flex-col left-1/2 translate-y-[10px] -translate-x-1/2",
+    "flex-col-reverse left-1/2 -translate-y-[calc(100%-1px)] -translate-x-1/2",
+  [Position.Bottom]: "flex-col left-1/2 translate-y-[1px] -translate-x-1/2 mt-1.5",
   [Position.Left]:
-    "flex-row-reverse top-1/2 -translate-x-full -translate-y-1/2",
-  [Position.Right]: "top-1/2 -translate-y-1/2 translate-x-[10px]",
+    "flex-row-reverse top-1/2 -translate-x-[calc(100%-1px)] -translate-y-1/2",
+  [Position.Right]: "top-1/2 -translate-y-1/2 translate-x-[1px] ",
 };
 
 const clamp = (value: number, min: number, max: number) =>
@@ -33,7 +33,6 @@ export function ButtonHandle({
 }) {
   const shouldShow = visible ?? showButton;
   const wrapperClassName = wrapperClassNames[position || Position.Bottom];
-  const vertical = position === Position.Top || position === Position.Bottom;
   const followAreaRef = useRef<any>(null);
   const pendingPointerRef = useRef<any>(null);
   const frameRef = useRef<number | null>(null);
@@ -106,11 +105,8 @@ export function ButtonHandle({
           className={`absolute flex items-center ${wrapperClassName} pointer-events-none`}
         >
           <div
-            className={`bg-gray-300 ${vertical ? "h-10 w-px" : "h-px w-10"}`}
-          />
-          <div
             ref={followAreaRef}
-            className="relative nodrag nopan pointer-events-auto rounded-md border border-pink-300/80 bg-pink-200/45"
+            className="relative nodrag nopan pointer-events-auto rounded-md bg-transparent"
             style={{
               width: followAreaSize,
               height: followAreaSize,

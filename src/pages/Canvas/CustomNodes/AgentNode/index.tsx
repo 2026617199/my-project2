@@ -26,7 +26,7 @@ export const AgentNode = memo(({ id, data, selected, dragging }: NodeProps<Agent
                 position={Position.Left}
                 id="input"
                 visible
-                className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
+                className={`transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
             <ButtonHandle
@@ -34,7 +34,7 @@ export const AgentNode = memo(({ id, data, selected, dragging }: NodeProps<Agent
                 position={Position.Right}
                 id="output"
                 visible
-                className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
+                className={`transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
             <div

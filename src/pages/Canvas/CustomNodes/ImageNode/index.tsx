@@ -38,7 +38,7 @@ export const ImageNode = memo(({
                 position={Position.Left}
                 id="input"
                 visible
-                className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
+                className={`transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
             {/* 右侧输出 Handle */}
@@ -47,7 +47,7 @@ export const ImageNode = memo(({
                 position={Position.Right}
                 id="output"
                 visible
-                className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
+                className={`transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
             {/* 顶部工具栏：随节点与画布缩放联动 */}

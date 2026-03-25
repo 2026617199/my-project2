@@ -46,7 +46,7 @@ export const NoteNode = memo(({ id, data, selected, width, height, dragging }: N
                 position={Position.Left}
                 id={inputHandleId}
                 visible
-                className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
+                className={`transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
             {/* 右侧输出 Handle：用于连接到其他节点。 */}
@@ -55,7 +55,7 @@ export const NoteNode = memo(({ id, data, selected, width, height, dragging }: N
                 position={Position.Right}
                 id={outputHandleId}
                 visible
-                className={`h-3! w-3! border-2! border-background! bg-primary! transition-opacity duration-150 ${handleVisibilityClass}`}
+                className={` transition-opacity duration-150 ${handleVisibilityClass}`}
             />
 
             <div
