@@ -559,17 +559,21 @@ export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
 
     if (currentNode.type === 'noteNode') {
       duplicatedNode = {
-        ...currentNode,
         id: newId,
+        type: currentNode.type,
         position: {
           x: currentNode.position.x + 40,
           y: currentNode.position.y + 40,
         },
+        width: currentNode.width,
+        height: currentNode.height,
         data: {
           ...currentNode.data,
           isEditing: false,
           createdAt: Date.now(),
         },
+        selected: false,
+        dragging: false,
       }
     } else {
       duplicatedNode = {
@@ -586,9 +590,23 @@ export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
       }
     }
 
-    set((state) => ({
-      nodes: [...state.nodes, duplicatedNode],
-    }))
+    set((state) => {
+      const nodes = state.nodes.map((node) => ({
+        ...node,
+        selected: false,
+      }))
+
+      return {
+        nodes: [
+          ...nodes,
+          {
+            ...duplicatedNode,
+            selected: true,
+            dragging: false,
+          },
+        ],
+      }
+    })
   },
 
   /**
