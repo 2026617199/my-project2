@@ -1,6 +1,7 @@
 import { IconSend2, IconSquare } from '@tabler/icons-react'
 
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
 type ChatComposerProps = {
     value: string
@@ -25,7 +26,7 @@ export const ChatComposer = ({
     return (
         <footer className="border-t border-slate-200 px-4 py-3">
             <div className="flex items-end gap-2">
-                <textarea
+                <Textarea
                     value={value}
                     rows={3}
                     placeholder="输入你的问题..."

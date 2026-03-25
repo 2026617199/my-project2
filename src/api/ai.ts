@@ -70,11 +70,8 @@ export async function createChatCompletion(data: any, signal?: AbortSignal) {
       throw new Error(await response.text().catch(() => `请求失败：${response.status}`))
     }
 
-    if (!response.body) {
-      throw new Error('浏览器不支持流式读取')
-    }
 
-    const reader = response.body
+    const reader = response.body!
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(new EventSourceParserStream())
       .getReader()
