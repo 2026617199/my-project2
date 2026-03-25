@@ -74,8 +74,8 @@ export const ImageToolbar = ({ data, selected }: ImageToolbarProps) => {
         <>
             <div
                 className={`nodrag nopan nowheel inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 shadow-md transition-all duration-200 ${selected
-                        ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
-                        : 'pointer-events-none -translate-y-2 scale-95 opacity-0'
+                    ? 'translate-y-0 scale-100 opacity-100'
+                    : '-translate-y-2 scale-95 opacity-0'
                     }`}
             >
                 {toolbarActions.map((item) => {

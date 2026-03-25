@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { Handle, type HandleProps } from "@xyflow/react";
+import { Background, Handle, type HandleProps } from "@xyflow/react";
 
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,11 @@ export function BaseHandle({
         "h-2.75 w-2.75 rounded-full border-0 bg-transparent shadow-none transition",
         className,
       )}
+      style={{
+        background: 'none',
+        border: 'none',
+      }
+      }
     >
       {children}
     </Handle>

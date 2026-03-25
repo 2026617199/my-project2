@@ -117,7 +117,7 @@ export function ButtonHandle({
             onPointerLeave={handlePointerLeave}
           >
             <div
-              className="absolute flex items-center justify-center"
+              className="pointer-events-none absolute flex items-center justify-center"
               style={{
                 width: buttonSize,
                 height: buttonSize,
@@ -126,7 +126,7 @@ export function ButtonHandle({
                 transform: "translate(-50%, -50%)",
               }}
             >
-              <div className="nodrag nopan pointer-events-auto">
+              <div className="nodrag nopan pointer-events-none">
                 {children ?? (
                   <div className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 bg-white text-sm font-medium text-slate-600 shadow-sm">
                     +
