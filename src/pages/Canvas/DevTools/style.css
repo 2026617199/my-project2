@@ -12,7 +12,7 @@
   background: white;
   border: none;
   padding: 5px 15px;
-  color: #222;
+  color: black;
   font-weight: bold;
   font-size: 12px;
   cursor: pointer;
@@ -56,6 +56,7 @@
   pointer-events: none;
   font-family: monospace, sans-serif;
   font-size: 10px;
+  color: #fff;
 }
 
 .react-flow__devtools-nodeinfo {

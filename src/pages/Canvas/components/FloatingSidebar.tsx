@@ -162,12 +162,12 @@ export const FloatingSidebar = ({ items = defaultItems, onAction, className }: F
 
                 {/* 子菜单 */}
                 {item.children && expandedItemId === item.id && (
-                    <div className="absolute left-full top-0 ml-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-max">
+                    <div className="absolute left-full top-0 ml-4 min-w-max py-1 glass-panel">
                         {item.children.map((subItem) => (
                             <button
                                 key={subItem.id}
                                 type="button"
-                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors noflow nopan nodelete nodrag"
+                                className="block w-full text-left px-4 py-2 text-sm text-slate-100 hover:bg-slate-700 transition-colors noflow nopan nodelete nodrag"
                                 onClick={() => handleSubItemClick(subItem.id)}
                             >
                                 {subItem.label}
@@ -181,7 +181,7 @@ export const FloatingSidebar = ({ items = defaultItems, onAction, className }: F
 
     return (
         <>
-            <aside className={cn('canvas-floating-sidebar', className)} aria-label="画布悬浮侧边栏">
+            <aside className={cn('canvas-floating-sidebar glass-panel', className)} aria-label="画布悬浮侧边栏">
                 <div className="canvas-floating-sidebar__group canvas-floating-sidebar__group--primary">
                     {renderMenuItems(primaryItems)}
                 </div>

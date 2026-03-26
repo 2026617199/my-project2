@@ -148,6 +148,7 @@ export const CanvasFlow = () => {
                     fitView
                     minZoom={0.2}
                     maxZoom={2}
+                    colorMode='dark'
                 >
                     <Background />
                     <Controls>

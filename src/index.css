@@ -216,5 +216,12 @@
     }
 }
 
+@layer components {
+  .glass-panel {
+    @apply bg-slate-400/50 backdrop-blur-md border-slate-400/30;
+
+  }
+}
+
 
 
