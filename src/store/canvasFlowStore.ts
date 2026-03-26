@@ -504,8 +504,6 @@ export const useCanvasFlowStore = create<CanvasFlowState>((set, get) => ({
         height: 180,
         data: {
           content: '',
-          inputHandleId: 'input',
-          outputHandleId: 'output',
           isEditing: true,
           createdAt: Date.now(),
         },

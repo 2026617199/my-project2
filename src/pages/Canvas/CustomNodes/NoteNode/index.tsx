@@ -9,7 +9,7 @@ import { NoteContent } from './NoteContent'
 import { NoteToolbar } from './NoteToolbar'
 
 // NoteNode：最小可用文本节点实现，保留编辑、预览、缩放与工具栏动作。
-export const NoteNode = memo(({ id, data, selected, width, height, dragging, ...rest }: NodeProps<NoteNodeType>) => {
+export const NoteNode = memo(({ id, data, selected, width, height, dragging }: NodeProps<NoteNodeType>) => {
     // console.log('测试会不会打印');
     // console.log(rest);
     const setNoteNodeEditing = useCanvasFlowStore((state) => state.setNoteNodeEditing)
@@ -19,8 +19,6 @@ export const NoteNode = memo(({ id, data, selected, width, height, dragging, ...
     const deleteNode = useCanvasFlowStore((state) => state.deleteNode)
     const isDragging = Boolean(dragging)
 
-    const inputHandleId = data.inputHandleId ?? 'input'
-    const outputHandleId = data.outputHandleId ?? 'output'
     const handleVisibilityClass = selected
         ? 'visible opacity-100'
         : 'invisible opacity-0 group-hover/node:visible group-hover/node:opacity-100'
@@ -40,7 +38,7 @@ export const NoteNode = memo(({ id, data, selected, width, height, dragging, ...
             <ButtonHandle
                 type="target"
                 position={Position.Left}
-                id={inputHandleId}
+                id="input"
                 visible
                 className={`${handleVisibilityClass}`}
             />
@@ -49,7 +47,7 @@ export const NoteNode = memo(({ id, data, selected, width, height, dragging, ...
             <ButtonHandle
                 type="source"
                 position={Position.Right}
-                id={outputHandleId}
+                id="output"
                 visible
                 className={` ${handleVisibilityClass}`}
             />

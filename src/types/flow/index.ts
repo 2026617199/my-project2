@@ -106,8 +106,6 @@ export interface VideoGenerationNode {
 // 还需要什么字段，就采用 运行时解析的动态数据 的方式添加（可以避免双写一致的问题）
 export interface NoteNodeData {
   content: string; // 文本内容（支持 Markdown 语法）
-  inputHandleId?: string; // 输入 Handle 标识（默认 input）
-  outputHandleId?: string; // 输出 Handle 标识（默认 output）
   isEditing?: boolean; // 是否处于编辑状态
   createdAt?: number; // 创建时间戳
   [key: string]: any; // React Flow 约束兼容
