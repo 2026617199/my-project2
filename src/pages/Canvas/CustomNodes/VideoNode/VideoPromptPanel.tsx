@@ -352,7 +352,7 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
         editorProps: {
             attributes: {
                 class: cn(
-                    'nodrag nopan nowheel min-h-[88px] max-h-[220px] overflow-y-auto rounded-xl border border-slate-200 bg-white/85 px-3 py-2 text-sm leading-6 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]',
+                    'nodrag nopan nowheel min-h-[88px] max-h-[220px] overflow-y-auto rounded-xl border border-neutral-700 bg-neutral-900/85 px-3 py-2 text-sm leading-6 text-neutral-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]',
                     'focus:outline-none',
                 ),
             },
@@ -504,14 +504,14 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
     }
 
     return (
-        <div className="nodrag nopan nowheel w-170 rounded-3xl border border-slate-200/80 bg-[linear-gradient(160deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.97)_58%,rgba(241,245,249,0.96)_100%)] p-3 shadow-[0_22px_70px_rgba(15,23,42,0.14)] backdrop-blur-md">
-            <div className="relative mb-3 rounded-2xl border border-slate-200/80 bg-white/80 p-2">
+        <div className="nodrag nopan nowheel w-170 rounded-3xl border border-neutral-700 bg-[linear-gradient(160deg,rgba(38,38,38,0.98)_0%,rgba(30,30,30,0.97)_58%,rgba(23,23,23,0.96)_100%)] p-3 shadow-[0_22px_70px_rgba(0,0,0,0.35)] backdrop-blur-md">
+            <div className="relative mb-3 rounded-2xl border border-neutral-700 bg-neutral-800/80 p-2">
                 <EditorContent editor={editor} />
 
                 <div className="nodrag nopan nowheel mt-2.5 flex gap-2 overflow-x-auto pb-1">
                     <button
                         type="button"
-                        className="group nodrag nopan nowheel relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white/90 text-slate-500 transition-colors hover:border-indigo-400 hover:text-indigo-600"
+                        className="group nodrag nopan nowheel relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-dashed border-neutral-600 bg-neutral-800/90 text-neutral-300 transition-colors hover:border-neutral-400 hover:text-neutral-100"
                         onClick={handleUploadClick}
                         title={isUploading ? '上传中...' : '上传参考图'}
                         disabled={isUploading}
@@ -534,7 +534,7 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
                         <button
                             key={`${url}-${index}`}
                             type="button"
-                            className="group nodrag nopan nowheel relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
+                            className="group nodrag nopan nowheel relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-neutral-700 bg-neutral-800"
                             title="参考图"
                         >
                             <img
@@ -548,7 +548,7 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
                 </div>
 
                 {activeMode && suggestionItems.length > 0 && (
-                    <div className="nodrag nopan nowheel absolute right-2 bottom-2 left-2 z-30 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-[0_14px_34px_rgba(15,23,42,0.16)]">
+                    <div className="nodrag nopan nowheel absolute right-2 bottom-2 left-2 z-30 max-h-44 overflow-y-auto rounded-xl border border-neutral-700 bg-neutral-900 shadow-[0_14px_34px_rgba(0,0,0,0.45)]">
                         {suggestionItems.map((item, index) => {
                             const isActive = index === activeIndex
                             const token = activeMode === 'mention' ? `@${item.value}` : item.command
@@ -558,8 +558,8 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
                                     key={item.id}
                                     type="button"
                                     className={cn(
-                                        'flex w-full items-start justify-between gap-3 border-b border-slate-100 px-3 py-2 text-left last:border-b-0',
-                                        isActive ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50',
+                                        'flex w-full items-start justify-between gap-3 border-b border-neutral-800 px-3 py-2 text-left last:border-b-0',
+                                        isActive ? 'bg-neutral-700 text-neutral-100' : 'text-neutral-200 hover:bg-neutral-800',
                                     )}
                                     onMouseDown={(event) => {
                                         event.preventDefault()
@@ -580,9 +580,9 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
                                 >
                                     <div>
                                         <div className="text-xs font-medium">{item.label}</div>
-                                        <div className="mt-0.5 text-[11px] text-slate-500">{item.description}</div>
+                                        <div className="mt-0.5 text-[11px] text-neutral-400">{item.description}</div>
                                     </div>
-                                    <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] text-slate-600">
+                                    <span className="rounded-md border border-neutral-700 bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-300">
                                         {token}
                                     </span>
                                 </button>
@@ -592,17 +592,17 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
                 )}
             </div>
 
-            <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-2.5">
+            <div className="rounded-2xl border border-neutral-700 bg-neutral-800/80 p-2.5">
                 <div className="flex items-end gap-2">
                     <div className="space-y-1">
-                        <label className="text-[11px] text-slate-500">画面比例</label>
+                        <label className="text-[11px] text-neutral-400">画面比例</label>
                         <Select
                             value={aspectRatio}
                             onValueChange={(value) => {
                                 updateVideoNodeData(nodeId, { aspect_ratio: value })
                             }}
                         >
-                            <SelectTrigger className="h-8 w-full border-slate-200 bg-white text-xs">
+                            <SelectTrigger className="h-8 w-full border-neutral-700 bg-neutral-900 text-xs text-neutral-100">
                                 <SelectValue placeholder="选择比例" />
                             </SelectTrigger>
                             <SelectContent>
@@ -616,7 +616,7 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[11px] text-slate-500">视频尺寸</label>
+                        <label className="text-[11px] text-neutral-400">视频尺寸</label>
                         <Select
                             value={videoSize}
                             onValueChange={(value) => {
@@ -628,7 +628,7 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
                                 })
                             }}
                         >
-                            <SelectTrigger className="h-8 w-full border-slate-200 bg-white text-xs">
+                            <SelectTrigger className="h-8 w-full border-neutral-700 bg-neutral-900 text-xs text-neutral-100">
                                 <SelectValue placeholder="选择尺寸" />
                             </SelectTrigger>
                             <SelectContent>
@@ -642,14 +642,14 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[11px] text-slate-500">生成模型</label>
+                        <label className="text-[11px] text-neutral-400">生成模型</label>
                         <Select
                             value={model}
                             onValueChange={(value) => {
                                 updateVideoNodeData(nodeId, { model: value })
                             }}
                         >
-                            <SelectTrigger className="h-8 w-full border-slate-200 bg-white text-xs">
+                            <SelectTrigger className="h-8 w-full border-neutral-700 bg-neutral-900 text-xs text-neutral-100">
                                 <SelectValue placeholder="选择模型" />
                             </SelectTrigger>
                             <SelectContent>
@@ -663,7 +663,7 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[11px] text-slate-500">视频时长（秒）</label>
+                        <label className="text-[11px] text-neutral-400">视频时长（秒）</label>
                         <input
                             type="number"
                             min={VIDEO_DURATION_CONFIG.min}
@@ -677,19 +677,19 @@ export const VideoPromptPanel = ({ nodeId }: { nodeId: string }) => {
                                 }
                                 updateVideoNodeData(nodeId, { duration: next })
                             }}
-                            className="h-8 w-26 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none focus:border-indigo-300"
+                            className="h-8 w-26 rounded-md border border-neutral-700 bg-neutral-900 px-2 text-xs text-neutral-100 outline-none focus:border-neutral-500"
                         />
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-[11px] text-slate-500">风格模板</label>
+                        <label className="text-[11px] text-neutral-400">风格模板</label>
                         <Select
                             value={templateId}
                             onValueChange={(value) => {
                                 updateVideoNodeData(nodeId, { templateId: value })
                             }}
                         >
-                            <SelectTrigger className="h-8 w-full border-slate-200 bg-white text-xs">
+                            <SelectTrigger className="h-8 w-full border-neutral-700 bg-neutral-900 text-xs text-neutral-100">
                                 <SelectValue placeholder="选择风格模板" />
                             </SelectTrigger>
                             <SelectContent>
