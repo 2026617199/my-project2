@@ -40,6 +40,8 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src')
       }
     },
+    // Electron 打包需要使用相对路径
+    base: './',
     server: {
       port: 3004,
       host: '0.0.0.0',

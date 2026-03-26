@@ -66,19 +66,19 @@ export const NOTE_CHAT_SYSTEM_PERSONAS: {
 }[] = [
 	{
 		id: 'system-creative-writer',
-		label: '创意文案助手',
+		label: '小说转剧本',
 		role: 'system',
 		content: '【占位】你是一名创意文案助手，请根据用户目标提供结构化建议。',
 	},
 	{
 		id: 'system-product-mentor',
-		label: '产品分析助手',
+		label: '即梦系统提示词',
 		role: 'system',
 		content: '【占位】你是一名产品分析助手，请优先从问题拆解与方案评估角度回答。',
 	},
 	{
 		id: 'system-ops-assistant',
-		label: '运营增长助手',
+		label: '拉片',
 		role: 'system',
 		content: '【占位】你是一名运营增长助手，请给出可执行、可量化的增长策略建议。',
 	},

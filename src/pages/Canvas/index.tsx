@@ -38,7 +38,7 @@ const CanvasPage = () => {
                 />
 
                 {/* 调试工具面板：仅在开发环境显示，生产构建时移除。 */}
-                {import.meta.env.DEV && <ReactFlowDevTools position="top-left" />}
+                {/* {import.meta.env.DEV && <ReactFlowDevTools position="top-left" />} */}
             </div>
         </ReactFlowProvider>
     )
